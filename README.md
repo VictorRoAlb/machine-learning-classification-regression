@@ -14,6 +14,16 @@ Selected coursework material on supervised learning, with an emphasis on data pr
 - a small selection of safe figures
 - short documentation on source material and excluded artifacts
 
+## Visual preview
+
+The public version includes representative figures from the coursework, including binary-classification structure and regression-oriented PCA views.
+
+![Binary classification figure](figures/fuzzy_binario.png)
+
+![Regression PCA figure](figures/pca_precio.png)
+
+![Joint PCA figure](figures/pca_conjunto.png)
+
 ## Data availability
 Raw tables, spreadsheets and serialized model artifacts are not published in this repository.
 
