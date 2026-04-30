@@ -1,0 +1,3238 @@
+---
+output:
+  bookdown::pdf_document2:
+    toc: false
+    number_sections: true
+bibliography: referencias_paquetes.bib
+header-includes:
+  - \usepackage{graphicx}
+  - \usepackage{float}
+  - \usepackage{placeins}
+  - \usepackage[hidelinks]{hyperref}
+  - \renewcommand{\figurename}{Figura}
+  - \renewcommand{\listfigurename}{Índice de figuras}
+  - \usepackage[font=small,labelfont=bf]{caption}
+  - \setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
+  - \setlength{\floatsep}{8pt plus 2pt minus 2pt}
+  - \setlength{\intextsep}{8pt plus 2pt minus 2pt}
+---
+\begin{titlepage}
+\thispagestyle{empty}
+\centering
+
+\vspace*{0.08cm}
+
+{\large \textsc{Universitat Politècnica de València}\par}
+
+\vspace{0.08cm}
+\includegraphics[width=0.5\textwidth]{logo_upv.png}
+
+\vspace{0.08cm}
+{\small Máster en Ingeniería de análisis de Datos, Mejora de Procesos y Toma de Decisiones\par}
+
+\vspace{0.22cm}
+
+\rule{0.82\textwidth}{0.6pt}\par
+\vspace{0.14cm}
+{\LARGE \bfseries TRABAJO DE MINERÍA DE DATOS\par}
+\vspace{0.08cm}
+{\large Grupo 9\par}
+\vspace{0.14cm}
+\rule{0.82\textwidth}{0.6pt}\par
+
+\vspace{0.22cm}
+
+\includegraphics[width=1.7\textwidth,height=0.4\textheight,keepaspectratio]{coche.png}
+
+\vspace{0.24cm}
+
+{\normalsize \textbf{Autores}\par}
+\vspace{0.07cm}
+{\small Víctor Rodriguez Albendea\par}
+\vspace{0.02cm}
+{\small Sergio Mallasen Quintana\par}
+\vspace{0.02cm}
+{\small Martí Josep Peretó Ferrer\par}
+
+\vspace{0.60cm}
+
+{\small \textbf{Asignatura:} Minería de Datos\par}
+\vspace{0.04cm}
+{\small \textbf{Fecha:} 18 de febrero de 2026\par}
+
+\end{titlepage}
+
+\clearpage
+\pagenumbering{roman}
+
+\tableofcontents
+\clearpage
+
+\listoffigures
+\clearpage
+
+\pagenumbering{arabic}
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.align = "center",
+  out.width = "100%",
+  fig.pos = "!htbp",
+  dpi = 300,
+  collapse = TRUE,
+  comment = "#>"
+)
+
+library(dplyr)
+library(mice)
+library(forcats)
+library(stringr)
+library(knitr)
+library(caret)
+library(ggplot2)
+library(tidyr)
+library(pROC)
+library(readxl)
+library(readr)
+library(purrr)
+library(scales)
+library(writexl)
+library(e1071)
+library(randomForest)
+library(ipred)
+library(rpart)
+library(doParallel)
+library(gbm)
+library(psych)
+library(ggrepel)
+library(patchwork)
+library(tibble)
+library(DALEX)
+library(ingredients)
+library(iBreakDown)
+
+RUTA_TRABAJO <- "."
+
+paquetes <- c(
+  "dplyr", "mice", "forcats", "stringr", "knitr", "caret",
+  "ggplot2", "tidyr", "pROC", "readxl", "readr", "purrr",
+  "scales", "writexl", "e1071", "randomForest", "ipred",
+  "rpart", "doParallel", "gbm", "kableExtra", "psych",
+  "ggrepel", "patchwork", "tibble", "DALEX", "ingredients", "iBreakDown"
+)
+
+knitr::write_bib(paquetes, file = "referencias_paquetes.bib")
+options(knitr.kable.NA = "")
+options(digits = 4)
+```
+
+```{r comprobar_archivos, include=FALSE}
+archivos_en_ruta_trabajo <- c(
+  "datos_imputados.RData",
+  "resultados_cv_clasificacion_binaria_todos_final.rds",
+  "resultados_test_todos_clasificacion_binaria_final.rds",
+  "confusion_matrix_mejor_modelo_binaria_final.rds",
+  "auc_tab_clasificacion_binaria_final.rds",
+  "roc_list_clasificacion_binaria_final.rds",
+  "imp_vars_mejor_clasificacion_binaria_final.rds",
+  "mejor_nombre_cv_clasificacion_binaria_final.rds",
+  "resultados_cv_regresion_final.rds",
+  "resultados_test_todos_regresion_final.rds",
+  "mejor_nombre_cv_regresion_final.rds",
+  "predicciones_mejor_modelo_regresion_final.rds",
+  "imp_vars_mejor_regresion_final.rds",
+  "shap_obj_regresion_final.rds"
+)
+
+archivos_locales_rmd <- c(
+  "logo_upv.png",
+  "coche.png"
+)
+
+faltan_ruta_trabajo <- archivos_en_ruta_trabajo[
+  !file.exists(file.path(RUTA_TRABAJO, archivos_en_ruta_trabajo))
+]
+
+faltan_locales <- archivos_locales_rmd[
+  !file.exists(archivos_locales_rmd)
+]
+
+if (length(faltan_ruta_trabajo) > 0 || length(faltan_locales) > 0) {
+  mensaje <- c(
+    paste0("RUTA_TRABAJO detectada: ", normalizePath(RUTA_TRABAJO, winslash = "/", mustWork = FALSE)),
+    if (length(faltan_ruta_trabajo) > 0)
+      paste0(
+        "Faltan archivos dentro de RUTA_TRABAJO:\n- ",
+        paste(faltan_ruta_trabajo, collapse = "\n- ")
+      ),
+    if (length(faltan_locales) > 0)
+      paste0(
+        "Faltan archivos en la misma carpeta del Rmd:\n- ",
+        paste(faltan_locales, collapse = "\n- ")
+      )
+  )
+
+  stop(paste(mensaje, collapse = "\n\n"))
+}
+```
+
+
+```{r helper_tablas_pdf, include=FALSE}
+tabla_pdf <- function(x,
+                      digits = 2,
+                      align = NULL,
+                      font_size = 9,
+                      row.names = FALSE,
+                      ...) {
+
+  x <- as.data.frame(x)
+
+  args_kable <- list(
+    x = x,
+    format = "latex",
+    booktabs = TRUE,
+    longtable = FALSE,
+    escape = TRUE,
+    digits = digits,
+    align = align,
+    row.names = row.names,
+    ...
+  )
+
+  do.call(knitr::kable, args_kable) %>%
+    kableExtra::kable_styling(
+      latex_options = c("hold_position", "scale_down"),
+      font_size = font_size,
+      position = "center"
+    )
+}
+```
+
+
+# Introducción {#sec:introduccion}
+
+El presente trabajo aborda el análisis de una base de datos de vehículos usados en Marruecos mediante una combinación de técnicas de minería de datos supervisadas y no supervisadas. El objetivo general es estudiar, por un lado, qué factores permiten discriminar entre vehículos con distinto nivel tecnológico y, por otro, qué variables explican mejor la variación del precio en el mercado.
+
+Para ello, el trabajo se estructura en tres bloques principales. En primer lugar, se plantea un problema de **clasificación binaria** orientado a distinguir entre vehículos con nivel tecnológico **bajo** y **alto**. En segundo lugar, se desarrolla un **análisis no supervisado** que permite interpretar la estructura interna de los datos y comprobar hasta qué punto esa separación binaria responde a una frontera nítida o, por el contrario, a un gradiente continuo. Finalmente, se aborda un problema de **regresión**, cuyo objetivo es predecir el **precio del vehículo** a partir de sus características estructurales, comerciales y de equipamiento.
+
+De este modo, la parte no supervisada no se plantea como un análisis aislado, sino como un bloque complementario que ayuda a interpretar y contextualizar los resultados obtenidos en clasificación y regresión. Asimismo, con el fin de preservar la trazabilidad del trabajo, el documento combina en el cuerpo principal los bloques operativos esenciales con el detalle completo del preprocesado, las funciones auxiliares y el entrenamiento de modelos en los anexos.
+
+# Clasificación {#sec:clasificacion}
+
+En primer lugar, se abordó un **problema de clasificación binaria** orientado a distinguir entre vehículos con **bajo nivel de conectividad o equipamiento tecnológico** y vehículos con **nivel alto**. Para ello, se partió de la variable `equip_tech`, construida previamente a partir de la información contenida en `Equipment`, y se definió una variable binaria final, `tech_level_bin`, donde los valores 0 y 1 se agruparon como **Bajo**, mientras que los valores 2 y 3 se agruparon como **Alto**.
+
+Esta formulación binaria se adoptó finalmente por ofrecer una separación más estable e interpretable que la alternativa multiclase, además de proporcionar un mejor rendimiento predictivo en las pruebas realizadas. En primer lugar, se cargó la base de datos imputada que sirve de punto de partida para todo el bloque supervisado.
+
+```{r carga_base_principal, include=FALSE, message=FALSE, warning=FALSE}
+load(file.path(RUTA_TRABAJO, "datos_imputados.RData"))
+```
+
+## Preparación de los datos
+
+A partir de la base imputada final, se construyó la variable objetivo `tech_level_bin` y se seleccionaron como predictores variables estructurales y comerciales del vehículo, incluyendo atributos numéricos y categóricos. En el caso de variables con alta cardinalidad, como la marca, el modelo, la localización y el sector, se agruparon las categorías menos frecuentes bajo la etiqueta **Other** para facilitar el proceso de modelización.
+
+El código completo de construcción de la base de clasificación puede consultarse en el **Anexo \@ref(anx:clas-prep)**. En el cuerpo principal se muestra únicamente la distribución final de la variable objetivo, por ser el resultado relevante para la interpretación del problema.
+
+```{r clasificacion_preparacion_datos, include=FALSE, message=FALSE, warning=FALSE}
+data_final_bin <- data_final %>%
+  dplyr::mutate(
+    tech_level_bin = dplyr::case_when(
+      equip_tech <= 1 ~ "Bajo",
+      equip_tech >= 2 ~ "Alto",
+      TRUE ~ NA_character_
+    )
+  )
+
+data_clas <- data_final_bin %>%
+  dplyr::filter(!is.na(tech_level_bin)) %>%
+  dplyr::mutate(
+    Brand = stringr::str_to_title(stringr::str_squish(stringr::str_trim(Brand))),
+    Model = stringr::str_to_title(stringr::str_squish(stringr::str_trim(Model))),
+    Location = stringr::str_to_title(stringr::str_squish(stringr::str_trim(Location))),
+    Sector = stringr::str_to_title(stringr::str_squish(stringr::str_trim(Sector))),
+    Brand_top = forcats::fct_lump_n(factor(Brand), n = 20, other_level = "Other"),
+    Model_top = forcats::fct_lump_n(factor(Model), n = 50, other_level = "Other"),
+    Location_top = forcats::fct_lump_n(factor(Location), n = 30, other_level = "Other"),
+    Sector_top = forcats::fct_lump_n(factor(Sector), n = 50, other_level = "Other")
+  ) %>%
+  dplyr::select(
+    tech_level_bin,
+    Year,
+    Condition_num,
+    Mileage_mean,
+    Fiscal.Power,
+    Gearbox,
+    Origin,
+    First.Owner,
+    Fuel,
+    Brand_top,
+    Model_top,
+    Location_top,
+    Sector_top
+  ) %>%
+  dplyr::mutate(
+    tech_level_bin = factor(tech_level_bin, levels = c("Bajo", "Alto")),
+    Year = as.integer(Year),
+    Condition_num = as.numeric(Condition_num),
+    Mileage_mean = as.numeric(Mileage_mean),
+    Fiscal.Power = as.numeric(Fiscal.Power),
+    Gearbox = factor(Gearbox),
+    Origin = factor(Origin),
+    First.Owner = factor(First.Owner),
+    Fuel = factor(Fuel),
+    Brand_top = factor(Brand_top),
+    Model_top = factor(Model_top),
+    Location_top = factor(Location_top),
+    Sector_top = factor(Sector_top)
+  ) %>%
+  droplevels()
+
+tabla_freq <- table(data_clas$tech_level_bin)
+
+tabla_clases <- data.frame(
+  Clase = names(tabla_freq),
+  Frecuencia = as.numeric(tabla_freq),
+  Proporcion = round(100 * as.numeric(prop.table(tabla_freq)), 2)
+)
+```
+
+**Tabla 1. Distribución de la variable objetivo binaria.**
+
+```{r clasificacion_tabla_clases, echo=FALSE, message=FALSE, warning=FALSE}
+tabla_pdf(
+  tabla_clases,
+  digits = c(0, 0, 2),
+  align = "lcc",
+  row.names = FALSE
+)
+```
+
+La distribución de clases muestra un predominio moderado de la categoría **Bajo** frente a **Alto**, pero sin un desbalanceo extremo. Dado además el tamaño muestral disponible, se decidió no aplicar técnicas específicas de balanceo, de modo que la comparación entre modelos se realizase sobre la estructura original de los datos.
+
+## Partición train/test y metodología de evaluación
+
+Para la evaluación del problema de clasificación se aplicó una partición **hold-out estratificada**, reservando el **70 %** de las observaciones para entrenamiento y el **30 %** para test. Posteriormente, las variables categóricas se transformaron en variables dummy y se eliminaron aquellos predictores con varianza casi nula. Sobre el conjunto de entrenamiento se aplicó **validación cruzada de 5 pliegues** para ajustar y comparar distintos clasificadores.
+
+Como criterio principal de comparación se utilizó el coeficiente **Kappa**, complementado con la **accuracy**. Además, en el conjunto test se evaluaron métricas adicionales como **sensibilidad**, **especificidad**, **balanced accuracy**, **F1** y **AUC**. Los modelos considerados fueron **árbol de decisión**, **random forest**, **bagging**, **boosting**, **SVM radial** y **kNN**.
+
+El código correspondiente a la partición, construcción de la matriz de modelización, funciones auxiliares y entrenamiento completo de los modelos se recoge en los **Anexos \@ref(anx:clas-split), \@ref(anx:clas-func) y \@ref(anx:clas-ent)**. En el cuerpo principal se muestran los bloques mínimos de carga y los resultados finales obtenidos.
+
+```{r clasificacion_codigo_guia, echo=TRUE, eval=FALSE}
+# Carga de la base imputada
+load(file.path(RUTA_TRABAJO, "datos_imputados.RData"))
+
+# Preparación de la base de clasificación
+# (desarrollo completo: Anexo D.1)
+data_final_bin <- data_final %>%
+  dplyr::mutate(
+    tech_level_bin = dplyr::case_when(
+      equip_tech <= 1 ~ "Bajo",
+      equip_tech >= 2 ~ "Alto",
+      TRUE ~ NA_character_
+    )
+  )
+
+# Partición train/test y matriz de modelización
+# (desarrollo completo: Anexo D.2)
+id_train <- caret::createDataPartition(data_clas$tech_level_bin, p = 0.7, list = FALSE)
+dummies <- caret::dummyVars(tech_level_bin ~ ., data = train_raw, fullRank = TRUE)
+
+# Carga de resultados ya guardados
+# (funciones auxiliares y entrenamiento completo: Anexos D.3 y E)
+resultados_cv <- readRDS(file.path(RUTA_TRABAJO, "resultados_cv_clasificacion_binaria_todos_final.rds"))
+resultados_test_todos <- readRDS(file.path(RUTA_TRABAJO, "resultados_test_todos_clasificacion_binaria_final.rds"))
+roc_list <- readRDS(file.path(RUTA_TRABAJO, "roc_list_clasificacion_binaria_final.rds"))
+cm_mejor <- readRDS(file.path(RUTA_TRABAJO, "confusion_matrix_mejor_modelo_binaria_final.rds"))
+imp_vars_mejor <- readRDS(file.path(RUTA_TRABAJO, "imp_vars_mejor_clasificacion_binaria_final.rds"))
+
+# Construcción de figuras del bloque principal
+ggroc(roc_list, legacy.axes = TRUE)
+cm_df <- as.data.frame(cm_mejor$table)
+plot(imp_vars_mejor, top = 15)
+```
+
+
+```{r clasificacion-train-test, include=FALSE, message=FALSE, warning=FALSE}
+set.seed(123)
+id_train <- caret::createDataPartition(data_clas$tech_level_bin, p = 0.7, list = FALSE)
+
+train_raw <- data_clas[id_train, ]
+test_raw  <- data_clas[-id_train, ]
+
+vars_factor <- c(
+  "Gearbox", "Origin", "First.Owner", "Fuel",
+  "Brand_top", "Model_top", "Location_top", "Sector_top"
+)
+
+for (v in vars_factor) {
+  test_raw[[v]] <- factor(test_raw[[v]], levels = levels(train_raw[[v]]))
+}
+
+test_raw$tech_level_bin <- factor(test_raw$tech_level_bin, levels = levels(train_raw$tech_level_bin))
+
+dummies <- caret::dummyVars(tech_level_bin ~ ., data = train_raw, fullRank = TRUE)
+
+x_train <- predict(dummies, newdata = train_raw) %>% as.data.frame()
+x_test  <- predict(dummies, newdata = test_raw)  %>% as.data.frame()
+
+x_test <- x_test[, colnames(x_train), drop = FALSE]
+
+y_train <- train_raw$tech_level_bin
+y_test  <- test_raw$tech_level_bin
+
+nzv <- caret::nearZeroVar(x_train)
+if (length(nzv) > 0) {
+  x_train <- x_train[, -nzv, drop = FALSE]
+  x_test  <- x_test[, -nzv, drop = FALSE]
+}
+```
+
+```{r clasificacion_cargar_resultados, include=FALSE, message=FALSE, warning=FALSE}
+resultados_cv <- readRDS(file.path(RUTA_TRABAJO, "resultados_cv_clasificacion_binaria_todos_final.rds"))
+resultados_test_todos <- readRDS(file.path(RUTA_TRABAJO, "resultados_test_todos_clasificacion_binaria_final.rds"))
+cm_mejor <- readRDS(file.path(RUTA_TRABAJO, "confusion_matrix_mejor_modelo_binaria_final.rds"))
+auc_tab <- readRDS(file.path(RUTA_TRABAJO, "auc_tab_clasificacion_binaria_final.rds"))
+roc_list <- readRDS(file.path(RUTA_TRABAJO, "roc_list_clasificacion_binaria_final.rds"))
+imp_vars_mejor <- readRDS(file.path(RUTA_TRABAJO, "imp_vars_mejor_clasificacion_binaria_final.rds"))
+mejor_nombre_cv <- readRDS(file.path(RUTA_TRABAJO, "mejor_nombre_cv_clasificacion_binaria_final.rds"))
+```
+
+## Resultados en validación cruzada
+
+La tabla siguiente resume el rendimiento medio de los modelos en validación cruzada.
+**Tabla 2. Comparación de modelos en validación cruzada.**
+```{r clasificacion_resultados_cv, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+resultados_cv_out <- resultados_cv %>%
+  dplyr::rename(
+    Accuracy = Accuracy_CV,
+    Kappa = Kappa_CV
+  )
+
+tabla_pdf(
+  resultados_cv,
+  digits = 4,
+  align = "lcc",
+  row.names = FALSE
+)
+```
+
+```{r clasificacion-grafico-cv, echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.height=6, fig.cap="Comparación del rendimiento de los modelos en validación cruzada según accuracy y Kappa.", fig.scap="Comparación de modelos en validación cruzada", fig.pos='!htbp'}
+resultados_cv_long <- resultados_cv %>%
+  pivot_longer(
+    cols = c(Accuracy_CV, Kappa_CV),
+    names_to = "Metrica",
+    values_to = "Valor"
+  ) %>%
+  mutate(
+    Metrica = recode(Metrica,
+                     "Accuracy_CV" = "Accuracy",
+                     "Kappa_CV" = "Kappa"),
+    Modelo = forcats::fct_reorder(Modelo, Valor, .fun = max)
+  )
+
+ggplot(resultados_cv_long, aes(x = Modelo, y = Valor, fill = Metrica)) +
+  geom_col(position = position_dodge(width = 0.75), width = 0.65) +
+  coord_flip() +
+  labs(
+    title = "Comparación de modelos en validación cruzada",
+    x = "Modelo",
+    y = "Valor de la métrica",
+    fill = "Métrica"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    legend.position = "bottom",
+    panel.grid.minor = element_blank()
+  )
+```
+
+A la vista de estos resultados, **Random Forest** fue el modelo con mejor comportamiento global en validación cruzada, alcanzando los mayores valores tanto de **accuracy** como de **Kappa**. Por detrás se situaron **bagging** y **boosting**, con rendimientos también competitivos, mientras que **árbol de decisión**, **kNN** y **SVM radial** mostraron un desempeño inferior. En conjunto, estos resultados sugieren que la relación entre los predictores y el nivel tecnológico presenta una estructura no lineal que los métodos basados en ensamblado captan mejor que los modelos más simples.
+
+## Resultados en test
+
+Una vez ajustados los modelos, se evaluó su rendimiento final sobre el conjunto **test**, mantenido independiente durante todo el proceso de entrenamiento y selección.
+
+**Tabla 3. Comparación final de todos los modelos en el conjunto test.**
+```{r clasificacion_resultados_test, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+resultados_test_tabla <- resultados_test_todos %>%
+  rename(
+    Accuracy = Accuracy_test,
+    Kappa = Kappa_test,
+    Sensitivity = Sensitivity_test,
+    Specificity = Specificity_test,
+    `Balanced Accuracy` = Balanced_Accuracy_test,
+    F1 = F1_test,
+    AUC = AUC_test
+  )
+
+tabla_pdf(
+  resultados_test_tabla,
+  digits = 4,
+  align = "lccccccc",
+  font_size = 8,
+  row.names = FALSE
+)
+```
+
+Con el fin de completar la comparación global entre modelos, se analizaron también las curvas ROC y el área bajo la curva (**AUC**) en el conjunto test. Esta comparación confirmó la mayor capacidad discriminante de **Random Forest**, seguido de **bagging** y **boosting**, y reforzó la consistencia de la selección realizada a partir de **accuracy** y **Kappa**. En consecuencia, el modelo final no solo fue el mejor en términos de acierto global, sino también el que mostró una separación más eficaz entre ambas clases a lo largo de distintos umbrales de decisión.
+
+**Tabla 4. Área bajo la curva ROC (AUC) en test.**
+```{r clasificacion_auc, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+auc_tab_limpia <- as.data.frame(auc_tab)
+rownames(auc_tab_limpia) <- NULL
+
+tabla_pdf(
+  auc_tab_limpia,
+  digits = 4,
+  align = "lc",
+  font_size = 8,
+  row.names = FALSE
+)
+```
+
+A continuación, se representan las curvas ROC correspondientes a los distintos modelos evaluados en el conjunto test.
+
+```{r clasificacion-roc, echo=FALSE, message=FALSE, warning=FALSE, fig.width=3.8, fig.height=3.0, out.width="72%", fig.cap="Curvas ROC de los distintos modelos evaluados en el conjunto test.", fig.scap="Curvas ROC en test", fig.align='center', fig.pos='H'}
+p_roc <- ggroc(roc_list, legacy.axes = TRUE) +
+  geom_abline(linetype = 2, linewidth = 0.4) +
+  labs(
+    x = "1 - Especificidad",
+    y = "Sensibilidad",
+    color = "Modelo"
+  ) +
+  theme_minimal(base_size = 9.5) +
+  guides(color = guide_legend(nrow = 2, byrow = TRUE)) +
+  theme(
+    plot.title = element_blank(),
+    axis.title = element_text(face = "bold", size = 8.5),
+    axis.text = element_text(size = 7.5),
+    legend.position = "bottom",
+    legend.title = element_text(face = "bold", size = 7.5),
+    legend.text = element_text(size = 6.8),
+    panel.grid.minor = element_blank()
+  )
+
+print(p_roc)
+```
+
+Los resultados obtenidos en test confirmaron la superioridad observada en validación cruzada. En particular, **Random Forest** volvió a situarse como el modelo más sólido, con los mejores valores de **accuracy** (`0.7584`), **Kappa** (`0.4686`) y **AUC** (`0.8289`). **Bagging** mantuvo un rendimiento próximo, mientras que **boosting**, **árbol**, **kNN** y **SVM radial** quedaron por detrás. Por tanto, se seleccionó **Random Forest** como modelo final del problema de clasificación.
+
+\FloatBarrier
+
+## Interpretación del mejor modelo
+
+La matriz de confusión del modelo finalmente seleccionado permite analizar con más detalle cómo se distribuyen los aciertos y errores de clasificación entre ambas categorías. En términos generales, el modelo distingue razonablemente bien entre vehículos con nivel tecnológico **bajo** y **alto**, aunque no de forma perfecta. En particular, el rendimiento es más favorable en la identificación de la clase **Bajo** que en la de la clase **Alto**, tal como refleja la mayor **especificidad** frente a la **sensibilidad**. Este resultado sugiere que, aunque la formulación binaria resulta útil desde el punto de vista predictivo, existe una franja de vehículos con características intermedias que dificulta una separación completamente nítida entre ambos perfiles.
+
+```{r clasificacio-matriz-confusion, echo=FALSE, message=FALSE, warning=FALSE, fig.width=4.1, fig.height=3.5, fig.cap="Matriz de confusión del modelo Random Forest en el conjunto test.", fig.scap="Matriz de confusión del Random Forest", fig.pos='!htbp'}
+cm_df <- as.data.frame(cm_mejor$table)
+colnames(cm_df) <- c("Prediccion", "Real", "Frecuencia")
+
+ggplot(cm_df, aes(x = Real, y = Prediccion, fill = Frecuencia)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Frecuencia), size = 4.2) +
+  labs(
+    x = "Clase real",
+    y = "Clase predicha",
+    fill = "Frecuencia"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_blank(),
+    panel.grid = element_blank(),
+    axis.title = element_text(face = "bold"),
+    legend.title = element_text(face = "bold", size = 9),
+    legend.text = element_text(size = 8)
+  )
+```
+
+\FloatBarrier
+
+## Importancia de variables
+
+Por último, dado que el mejor modelo seleccionado fue un **Random Forest**, se analizó la importancia relativa de las variables predictoras mediante el procedimiento de **importancia de variables** incorporado en este tipo de modelos, con el fin de identificar qué atributos contribuyeron en mayor medida a la clasificación del nivel tecnológico.
+
+```{r clasificacion-importancia, echo=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=3.4, fig.cap="Importancia relativa de las variables predictoras en el modelo Random Forest.", fig.scap="Importancia de variables en Random Forest", fig.pos='!htbp'}
+if (!is.null(imp_vars_mejor)) {
+  plot(
+    imp_vars_mejor,
+    top = 15,
+    main = paste("Importancia de variables -", mejor_nombre_cv)
+  )
+}
+```
+
+El análisis de importancia de variables mostró que el nivel tecnológico del vehículo no depende de un único factor aislado, sino de una combinación de atributos estructurales y comerciales. Entre los predictores más relevantes destacaron el **año del vehículo**, el **estado**, el **tipo de caja de cambios**, el **kilometraje** y la **potencia fiscal**, junto con determinadas variables asociadas a **marca**, **localización** y **sector comercial**. En conjunto, estos resultados sugieren que los vehículos tecnológicamente más avanzados tienden a asociarse con perfiles más recientes, mejor conservados y comercialmente diferenciados.
+
+No obstante, la interpretación de estos resultados supervisados puede enriquecerse si se analiza también la estructura interna de la base sin imponer de antemano una variable objetivo. Por ello, en el siguiente bloque se incorpora un análisis no supervisado orientado a comprobar si la diferenciación entre vehículos con nivel tecnológico bajo y alto aparece también de forma natural en el espacio multivariante de los datos.
+
+\FloatBarrier
+
+# Análisis no supervisado {#sec:nosup}
+
+
+Con el fin de complementar la parte supervisada del trabajo, se realizó un análisis no supervisado alineado con la misma formulación binaria utilizada en clasificación. En particular, se distinguió entre vehículos con nivel tecnológico **bajo** (`equip_tech <= 1`) y vehículos con nivel tecnológico **alto** (`equip_tech >= 2`).
+
+La motivación de este análisis adicional fue profundizar en la estructura interna de los datos y comprobar si la frontera entre ambos grupos podía considerarse realmente nítida. Para ello, se aplicó en primer lugar un **análisis de componentes principales (PCA)** sobre variables numéricas del vehículo y del equipamiento, con el objetivo de resumir la variabilidad conjunta del sistema. En segundo lugar, se utilizó un enfoque de **fuzzy clustering** para estudiar explícitamente el grado de ambigüedad en la pertenencia de los vehículos a uno u otro perfil.
+
+Una vez definidas las funciones auxiliares del bloque no supervisado, se ejecutó el flujo de trabajo correspondiente para preparar la base, ajustar el PCA, generar las figuras principales y obtener el fuzzy clustering.
+
+```{r nosup_codigo_guia, echo=TRUE, eval=FALSE}
+# Preparación de la base para PCA y fuzzy clustering
+# (funciones completas: Anexo F)
+data_ns <- preparar_base_ns(data_final)
+
+# Ejecución de los análisis
+# (detalle técnico: Anexos G y H)
+res_pca <- ejecutar_pca_ns(data_ns)
+res_fuzzy <- ejecutar_fuzzy_ns(data_ns)
+
+# Generación de figuras principales
+guardar_figura_pca_conjunta(res_pca, "figuras_no_supervisado/pca_conjunto.png")
+guardar_figura_pca_precio(res_pca, data_final, "figuras_no_supervisado/pca_precio.png")
+guardar_figura_fuzzy(res_fuzzy, "figuras_no_supervisado/fuzzy_binario.png")
+
+# Carga de las figuras en el documento principal
+knitr::include_graphics("figuras_no_supervisado/pca_conjunto.png")
+knitr::include_graphics("figuras_no_supervisado/pca_precio.png")
+knitr::include_graphics("figuras_no_supervisado/fuzzy_binario.png")
+```
+
+El desarrollo completo de las funciones auxiliares, la preparación de la base y la ejecución del análisis no supervisado puede consultarse en los **Anexos \@ref(anx:ns-func), \@ref(anx:ns-pca) y \@ref(anx:ns-fuzzy)**, donde se presenta el detalle metodológico del PCA y del fuzzy clustering. Con el fin de mantener la continuidad del cuerpo principal, a continuación se muestran únicamente los resultados más relevantes para la interpretación de la estructura multivariante de los datos.
+
+
+```{r ns_helpers_run, include=FALSE, warning=FALSE, message=FALSE}
+preparar_base_ns <- function(data_final) {
+  data_final %>%
+    dplyr::mutate(
+      tech_level_bin = dplyr::case_when(
+        equip_tech <= 1 ~ "Bajo",
+        equip_tech >= 2 ~ "Alto",
+        TRUE ~ NA_character_
+      ),
+      tech_level_bin = factor(tech_level_bin, levels = c("Bajo", "Alto")),
+      Price = as.numeric(Price),
+      Year = as.numeric(Year),
+      Mileage_mean = as.numeric(Mileage_mean),
+      Fiscal.Power = as.numeric(Fiscal.Power),
+      Condition_num = as.numeric(Condition_num),
+      equip_security = as.numeric(equip_security),
+      equip_driving_assist = as.numeric(equip_driving_assist),
+      equip_comfort = as.numeric(equip_comfort),
+      equip_tech = as.numeric(equip_tech)
+    ) %>%
+    dplyr::filter(!is.na(tech_level_bin))
+}
+ejecutar_pca_ns <- function(data_ns) {
+
+  vars_pca <- c(
+    "Year",
+    "Mileage_mean",
+    "Fiscal.Power",
+    "Condition_num",
+    "equip_security",
+    "equip_driving_assist",
+    "equip_comfort",
+    "equip_tech"
+  )
+
+  data_pca_full <- data_ns %>%
+    dplyr::mutate(Price = as.numeric(Price)) %>%
+    dplyr::select(tech_level_bin, Price, dplyr::all_of(vars_pca)) %>%
+    tidyr::drop_na(dplyr::all_of(vars_pca))
+
+  datos_pca <- data_pca_full %>%
+    dplyr::select(dplyr::all_of(vars_pca))
+
+  pca_obj <- prcomp(datos_pca, center = TRUE, scale. = TRUE)
+
+  eig_vals <- pca_obj$sdev^2
+  var_exp  <- 100 * eig_vals / sum(eig_vals)
+
+  eig_pca <- tibble::tibble(
+    Dimensión = paste0("Dim ", seq_along(eig_vals)),
+    Autovalor = eig_vals,
+    `Varianza (%)` = var_exp,
+    `Varianza acumulada (%)` = cumsum(var_exp)
+  )
+
+  cor_mat_pca <- cor(datos_pca)
+  kmo_pca  <- psych::KMO(cor_mat_pca)
+  bart_pca <- psych::cortest.bartlett(cor_mat_pca, n = nrow(datos_pca))
+
+  tabla_kmo_pca <- tibble::tibble(
+    Variable = c("Global", names(kmo_pca$MSAi)),
+    KMO = c(kmo_pca$MSA, kmo_pca$MSAi)
+  )
+
+  coord_mat <- sweep(pca_obj$rotation, 2, pca_obj$sdev, "*")
+  colnames(coord_mat) <- paste0("Dim.", seq_len(ncol(coord_mat)))
+
+  contrib_mat <- sweep(coord_mat^2, 2, colSums(coord_mat^2), "/") * 100
+  cos2_mat    <- coord_mat^2 / rowSums(coord_mat^2)
+
+  coord_vars_pca <- as.data.frame(coord_mat) %>%
+    tibble::rownames_to_column("Variable")
+
+  contrib_vars_pca <- as.data.frame(contrib_mat) %>%
+    tibble::rownames_to_column("Variable")
+
+  cos2_vars_pca <- as.data.frame(cos2_mat) %>%
+    tibble::rownames_to_column("Variable")
+
+  coord_ind_pca <- as.data.frame(pca_obj$x)
+  colnames(coord_ind_pca) <- paste0("Dim.", seq_len(ncol(coord_ind_pca)))
+  coord_ind_pca$tech_level_bin <- data_pca_full$tech_level_bin
+
+  set.seed(123)
+  id_muestra_pca <- sample(
+    seq_len(nrow(coord_ind_pca)),
+    size = min(12000, nrow(coord_ind_pca))
+  )
+  coord_ind_pca_muestra <- coord_ind_pca[id_muestra_pca, ]
+
+  top_dim1_vars <- contrib_vars_pca %>%
+    dplyr::select(Variable, Dim.1) %>%
+    dplyr::arrange(dplyr::desc(Dim.1)) %>%
+    dplyr::slice(1:4) %>%
+    dplyr::pull(Variable) %>%
+    paste(collapse = ", ")
+
+  top_dim2_vars <- contrib_vars_pca %>%
+    dplyr::select(Variable, Dim.2) %>%
+    dplyr::arrange(dplyr::desc(Dim.2)) %>%
+    dplyr::slice(1:4) %>%
+    dplyr::pull(Variable) %>%
+    paste(collapse = ", ")
+
+  list(
+    vars_pca = vars_pca,
+    data_pca_full = data_pca_full,
+    datos_pca = datos_pca,
+    pca_obj = pca_obj,
+    eig_pca = eig_pca,
+    cor_mat_pca = cor_mat_pca,
+    kmo_pca = kmo_pca,
+    bart_pca = bart_pca,
+    tabla_kmo_pca = tabla_kmo_pca,
+    coord_vars_pca = coord_vars_pca,
+    contrib_vars_pca = contrib_vars_pca,
+    cos2_vars_pca = cos2_vars_pca,
+    coord_ind_pca = coord_ind_pca,
+    coord_ind_pca_muestra = coord_ind_pca_muestra,
+    var_pca_1 = round(var_exp[1], 2),
+    var_pca_2 = round(var_exp[2], 2),
+    var_pca_12 = round(sum(var_exp[1:2]), 2),
+    top_dim1_vars = top_dim1_vars,
+    top_dim2_vars = top_dim2_vars
+  )
+}
+
+guardar_figura_pca_conjunta <- function(res_pca, fichero) {
+
+  cols_nivel <- c("Bajo" = "#F08A81", "Alto" = "#28C7D1")
+  fills_nivel <- c("Bajo" = "#F6B4AE", "Alto" = "#8AE1E7")
+
+  vars_plot <- res_pca$coord_vars_pca %>%
+    dplyr::select(Variable, Dim.1, Dim.2) %>%
+    dplyr::mutate(
+      Etiqueta = dplyr::recode(
+        Variable,
+        Year = "Año",
+        Mileage_mean = "Kilometraje",
+        Fiscal.Power = "Potencia fiscal",
+        Condition_num = "Estado",
+        equip_security = "Seguridad",
+        equip_driving_assist = "Asist. conducción",
+        equip_comfort = "Confort",
+        equip_tech = "Tecnología"
+      )
+    )
+
+  circle_df <- data.frame(
+    x = cos(seq(0, 2 * pi, length.out = 400)),
+    y = sin(seq(0, 2 * pi, length.out = 400))
+  )
+
+  escala_biplot <- max(
+    stats::quantile(abs(res_pca$coord_ind_pca$Dim.1), 0.99, na.rm = TRUE),
+    stats::quantile(abs(res_pca$coord_ind_pca$Dim.2), 0.99, na.rm = TRUE)
+  ) * 1.15
+
+  scores_left <- res_pca$coord_ind_pca %>%
+    dplyr::mutate(
+      x_biplot = Dim.1 / escala_biplot,
+      y_biplot = Dim.2 / escala_biplot
+    )
+
+  centroides_left <- scores_left %>%
+    dplyr::group_by(tech_level_bin) %>%
+    dplyr::summarise(
+      x_biplot = mean(x_biplot),
+      y_biplot = mean(y_biplot),
+      .groups = "drop"
+    )
+
+  p_left <- ggplot() +
+    geom_path(
+      data = circle_df,
+      aes(x = x, y = y),
+      color = "grey55",
+      linewidth = 0.45
+    ) +
+    geom_hline(yintercept = 0, linetype = 2, color = "grey75", linewidth = 0.35) +
+    geom_vline(xintercept = 0, linetype = 2, color = "grey75", linewidth = 0.35) +
+    stat_ellipse(
+      data = scores_left,
+      aes(x = x_biplot, y = y_biplot, color = tech_level_bin, fill = tech_level_bin),
+      type = "norm",
+      geom = "polygon",
+      level = 0.60,
+      alpha = 0.12,
+      linewidth = 0,
+      show.legend = FALSE
+    ) +
+    stat_ellipse(
+      data = scores_left,
+      aes(x = x_biplot, y = y_biplot, color = tech_level_bin),
+      type = "norm",
+      level = 0.60,
+      linewidth = 0.75,
+      show.legend = FALSE
+    ) +
+    geom_segment(
+      data = vars_plot,
+      aes(x = 0, y = 0, xend = Dim.1, yend = Dim.2),
+      arrow = arrow(length = grid::unit(0.18, "cm")),
+      linewidth = 0.55,
+      color = "black"
+    ) +
+    ggrepel::geom_text_repel(
+      data = vars_plot,
+      aes(x = Dim.1, y = Dim.2, label = Etiqueta),
+      size = 3.7,
+      color = "black",
+      box.padding = 0.35,
+      point.padding = 0.25,
+      segment.color = "grey40",
+      segment.size = 0.3,
+      min.segment.length = 0,
+      max.overlaps = Inf,
+      seed = 123
+    ) +
+    geom_point(
+      data = centroides_left,
+      aes(x = x_biplot, y = y_biplot, fill = tech_level_bin, shape = tech_level_bin),
+      size = 4.2,
+      color = "black",
+      stroke = 0.4,
+      show.legend = FALSE
+    ) +
+    geom_label(
+      data = centroides_left,
+      aes(x = x_biplot, y = y_biplot, label = tech_level_bin),
+      inherit.aes = FALSE,
+      fill = "white",
+      color = "black",
+      fontface = "bold",
+      size = 4.1,
+      label.size = 0.20,
+      nudge_y = 0.07
+    ) +
+    scale_color_manual(values = cols_nivel) +
+    scale_fill_manual(values = fills_nivel) +
+    scale_shape_manual(values = c("Bajo" = 21, "Alto" = 24)) +
+    coord_equal(xlim = c(-1.15, 1.15), ylim = c(-1.15, 1.15)) +
+    labs(
+      x = "Dimensión 1",
+      y = "Dimensión 2"
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      plot.title = element_text(face = "bold", hjust = 0.5, size = 14),
+      axis.title = element_text(face = "bold"),
+      panel.grid.minor = element_blank()
+    )
+
+  p_right <- ggplot(res_pca$coord_ind_pca_muestra, aes(x = Dim.1, y = Dim.2, color = tech_level_bin)) +
+    geom_point(alpha = 0.22, size = 0.8) +
+    scale_color_manual(values = cols_nivel) +
+    labs(
+      x = "Dim. 1",
+      y = "Dim. 2",
+      color = "Nivel tecnológico"
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      plot.title = element_text(face = "bold", hjust = 0.5, size = 14),
+      axis.title = element_text(face = "bold"),
+      legend.title = element_text(face = "bold"),
+      panel.grid.minor = element_blank(),
+      legend.position = "right"
+    )
+
+  fig_pca_conjunta <- patchwork::wrap_plots(
+    p_left, p_right,
+    ncol = 2,
+    widths = c(1.1, 1.25)
+  ) +
+    patchwork::plot_annotation(
+      title = "Representación conjunta del análisis de componentes principales (PCA)",
+      theme = ggplot2::theme(
+        plot.title = ggplot2::element_text(face = "bold", hjust = 0.5, size = 16)
+      )
+    )
+
+  ggplot2::ggsave(
+    filename = fichero,
+    plot = fig_pca_conjunta,
+    width = 12.6,
+    height = 6.1,
+    dpi = 300,
+    bg = "white"
+  )
+}
+guardar_figura_pca_precio <- function(res_pca, data_final, fichero) {
+
+  set.seed(123)
+
+  coord_ind_plot <- res_pca$coord_ind_pca %>%
+    dplyr::mutate(
+      Price = as.numeric(res_pca$data_pca_full$Price)
+    ) %>%
+    dplyr::filter(!is.na(Price))
+
+  id_muestra <- sample(
+    seq_len(nrow(coord_ind_plot)),
+    size = min(15000, nrow(coord_ind_plot))
+  )
+
+  ind_plot <- coord_ind_plot[id_muestra, ]
+
+  coord_vars_plot <- res_pca$coord_vars_pca %>%
+    dplyr::select(Variable, Dim.1, Dim.2)
+
+  max_ind_x <- max(abs(ind_plot$Dim.1), na.rm = TRUE)
+  max_ind_y <- max(abs(ind_plot$Dim.2), na.rm = TRUE)
+  max_var_x <- max(abs(coord_vars_plot$Dim.1), na.rm = TRUE)
+  max_var_y <- max(abs(coord_vars_plot$Dim.2), na.rm = TRUE)
+
+  escala_flechas <- min(max_ind_x / max_var_x, max_ind_y / max_var_y) * 0.8
+
+  coord_vars_plot <- coord_vars_plot %>%
+    dplyr::mutate(
+      Dim1_plot = Dim.1 * escala_flechas,
+      Dim2_plot = Dim.2 * escala_flechas
+    )
+
+  nombres_bonitos <- c(
+    Year = "Año",
+    Mileage_mean = "Kilometraje",
+    Fiscal.Power = "Potencia fiscal",
+    Condition_num = "Estado",
+    equip_security = "Seguridad",
+    equip_driving_assist = "Asist. conducción",
+    equip_comfort = "Confort",
+    equip_tech = "Tecnología"
+  )
+
+  coord_vars_plot$Etiqueta <- dplyr::recode(coord_vars_plot$Variable, !!!nombres_bonitos)
+
+  p_precio <- ggplot() +
+    geom_point(
+      data = ind_plot,
+      aes(x = Dim.1, y = Dim.2, color = Price),
+      alpha = 0.30,
+      size = 0.9
+    ) +
+    geom_segment(
+      data = coord_vars_plot,
+      aes(x = 0, y = 0, xend = Dim1_plot, yend = Dim2_plot),
+      arrow = arrow(length = grid::unit(0.18, "cm")),
+      color = "steelblue",
+      linewidth = 0.6
+    ) +
+    ggrepel::geom_text_repel(
+      data = coord_vars_plot,
+      aes(x = Dim1_plot, y = Dim2_plot, label = Etiqueta),
+      color = "steelblue4",
+      size = 4,
+      box.padding = 0.35,
+      point.padding = 0.25,
+      segment.color = "grey50",
+      min.segment.length = 0,
+      seed = 123
+    ) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
+    scale_color_gradient(
+      low = "#cfe8ff",
+      high = "#d7301f",
+      limits = quantile(ind_plot$Price, c(0.05, 0.95), na.rm = TRUE),
+      oob = scales::squish,
+      name = "Price"
+    ) +
+    labs(
+      x = paste0("Dim1 (", round(res_pca$var_pca_1, 1), "%)"),
+      y = paste0("Dim2 (", round(res_pca$var_pca_2, 1), "%)")
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      plot.title = element_text(face = "bold"),
+      legend.title = element_text(face = "bold"),
+      panel.grid.minor = element_blank()
+    )
+
+  ggplot2::ggsave(
+    filename = fichero,
+    plot = p_precio,
+    width = 8.4,
+    height = 5.4,
+    dpi = 300,
+    bg = "white"
+  )
+}
+ejecutar_fuzzy_ns <- function(data_ns) {
+
+  vars_fuzzy <- c(
+    "Year",
+    "Mileage_mean",
+    "Fiscal.Power",
+    "Condition_num",
+    "equip_security",
+    "equip_driving_assist",
+    "equip_comfort"
+  )
+
+  dat <- data_ns %>%
+    dplyr::select(tech_level_bin, dplyr::all_of(vars_fuzzy)) %>%
+    tidyr::drop_na()
+
+  x_raw <- dat %>% dplyr::select(dplyr::all_of(vars_fuzzy))
+  x_scaled <- scale(x_raw)
+
+  set.seed(123)
+  mod <- e1071::cmeans(
+    x = x_scaled,
+    centers = 2,
+    m = 2,
+    dist = "euclidean",
+    method = "cmeans",
+    iter.max = 200,
+    verbose = FALSE
+  )
+
+  scale_center <- attr(x_scaled, "scaled:center")
+  scale_scale  <- attr(x_scaled, "scaled:scale")
+
+  centers_orig <- sweep(mod$centers, 2, scale_scale, "*")
+  centers_orig <- sweep(centers_orig, 2, scale_center, "+")
+
+  equip_cols <- c("equip_security", "equip_driving_assist", "equip_comfort")
+  ord <- order(rowMeans(centers_orig[, equip_cols, drop = FALSE]))
+
+  memb <- as.data.frame(mod$membership)[, ord, drop = FALSE]
+  colnames(memb) <- c("memb_perfil_menor", "memb_perfil_mayor")
+
+  centers_orig <- as.data.frame(centers_orig[ord, , drop = FALSE])
+
+  pmax_memb <- apply(memb, 1, max)
+
+  datos_out <- dplyr::bind_cols(dat, memb) %>%
+    dplyr::mutate(
+      pertenencia_max = pmax_memb,
+      perfil_dominante = ifelse(
+        memb_perfil_mayor >= memb_perfil_menor,
+        "Perfil tecnológico mayor",
+        "Perfil tecnológico menor"
+      )
+    )
+
+  pca_aux <- prcomp(x_raw, center = TRUE, scale. = TRUE)
+  coord_aux <- as.data.frame(pca_aux$x[, 1:2])
+  colnames(coord_aux) <- c("Dim.1", "Dim.2")
+
+  datos_plot <- dplyr::bind_cols(datos_out, coord_aux)
+
+  tabla_fuzzy_comparacion <- tibble::tibble(
+    Comparacion = "Bajo vs Alto",
+    n = nrow(datos_out),
+    `Pertenencia máxima media` = round(mean(pmax_memb), 2),
+    `% con pertenencia máx < 0.60` = round(100 * mean(pmax_memb < 0.60), 2),
+    `% con pertenencia máx < 0.70` = round(100 * mean(pmax_memb < 0.70), 2)
+  )
+
+  tabla_centros_fuzzy_bin <- centers_orig %>%
+    dplyr::mutate(Perfil = c("Perfil tecnológico menor", "Perfil tecnológico mayor")) %>%
+    dplyr::select(Perfil, dplyr::everything()) %>%
+    dplyr::mutate(dplyr::across(where(is.numeric), ~ round(.x, 2)))
+
+  tabla_memb_bin <- datos_out %>%
+    dplyr::group_by(tech_level_bin) %>%
+    dplyr::summarise(
+      n = dplyr::n(),
+      `Pertenencia media al perfil tecnológico mayor` = round(mean(memb_perfil_mayor), 3),
+      `Pertenencia máxima media` = round(mean(pertenencia_max), 3),
+      .groups = "drop"
+    )
+
+  set.seed(123)
+  id_muestra_fuzzy <- sample(
+    seq_len(nrow(datos_plot)),
+    size = min(12000, nrow(datos_plot))
+  )
+  fuzzy_bin_plot_muestra <- datos_plot[id_muestra_fuzzy, ]
+
+  list(
+    vars_fuzzy = vars_fuzzy,
+    modelo = mod,
+    datos = datos_out,
+    datos_plot = datos_plot,
+    fuzzy_bin_plot_muestra = fuzzy_bin_plot_muestra,
+    tabla_fuzzy_comparacion = tabla_fuzzy_comparacion,
+    tabla_centros_fuzzy_bin = tabla_centros_fuzzy_bin,
+    tabla_memb_bin = tabla_memb_bin,
+    pct060_bin = round(100 * mean(datos_out$pertenencia_max < 0.60), 2),
+    pct070_bin = round(100 * mean(datos_out$pertenencia_max < 0.70), 2)
+  )
+}
+
+guardar_figura_fuzzy <- function(res_fuzzy, fichero) {
+
+  plot_fuzzy <- res_fuzzy$fuzzy_bin_plot_muestra %>%
+    dplyr::mutate(
+      tech_level_bin = factor(tech_level_bin, levels = c("Bajo", "Alto"))
+    )
+
+  centros_obs <- plot_fuzzy %>%
+    dplyr::group_by(tech_level_bin) %>%
+    dplyr::summarise(
+      Dim.1 = median(Dim.1),
+      Dim.2 = median(Dim.2),
+      .groups = "drop"
+    )
+
+  fig_fuzzy <- ggplot(plot_fuzzy, aes(x = Dim.1, y = Dim.2)) +
+    geom_point(
+      aes(shape = tech_level_bin),
+      color = "grey80",
+      fill = "grey92",
+      alpha = 0.18,
+      size = 1.25,
+      stroke = 0.10
+    ) +
+    stat_density_2d(
+      aes(linetype = tech_level_bin),
+      color = "grey25",
+      linewidth = 0.55,
+      bins = 4,
+      show.legend = FALSE
+    ) +
+    geom_point(
+      data = subset(plot_fuzzy, pertenencia_max < 0.90),
+      aes(fill = pertenencia_max, shape = tech_level_bin),
+      color = "black",
+      alpha = 0.90,
+      size = 2.0,
+      stroke = 0.15
+    ) +
+    geom_label(
+      data = centros_obs,
+      aes(x = Dim.1, y = Dim.2, label = tech_level_bin),
+      inherit.aes = FALSE,
+      fill = "white",
+      color = "black",
+      fontface = "bold",
+      size = 4.5,
+      label.size = 0.20
+    ) +
+    scale_shape_manual(
+      values = c("Bajo" = 21, "Alto" = 24),
+      name = "Nivel observado"
+    ) +
+    scale_fill_gradientn(
+      colours = c("#C00000", "#F4B183", "#FFF2CC", "#A9D18E", "#006100"),
+      limits = c(0.5, 1),
+      breaks = c(0.6, 0.7, 0.8, 0.9),
+      name = "Pertenencia\nmáxima"
+    ) +
+    labs(
+      title = "Fuzzy clustering en vehículos con nivel tecnológico bajo y alto",
+      subtitle = "Rojo = mayor ambigüedad; verde = mayor pertenencia al perfil",
+      x = "Dimensión 1",
+      y = "Dimensión 2"
+    ) +
+    guides(
+      fill = guide_colorbar(
+        title.position = "top",
+        barheight = grid::unit(5.2, "cm")
+      ),
+      shape = guide_legend(
+        override.aes = list(fill = "white", color = "black", alpha = 1, size = 4)
+      )
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(
+      plot.title = element_text(face = "bold", size = 18, hjust = 0.5),
+      plot.subtitle = element_text(size = 11, hjust = 0.5),
+      axis.title = element_text(face = "bold"),
+      legend.title = element_text(face = "bold"),
+      panel.grid.minor = element_blank(),
+      panel.grid.major = element_line(color = "grey86", linewidth = 0.35),
+      legend.position = "right",
+      plot.margin = ggplot2::margin(10, 18, 10, 10, unit = "pt")
+    )
+
+  ggplot2::ggsave(
+    filename = fichero,
+    plot = fig_fuzzy,
+    width = 10,
+    height = 6.6,
+    dpi = 300,
+    bg = "white"
+  )
+}
+```
+
+## Análisis de Componentes Principales (PCA)
+
+A partir de la base preparada, se ejecutó el análisis de componentes principales (PCA) con el fin de obtener una representación sintética de la estructura multivariante de los datos. El código correspondiente se recoge en los anexos.
+
+```{r ns_pipeline_run, include=FALSE, warning=FALSE, message=FALSE}
+load(file.path(RUTA_TRABAJO, "datos_imputados.RData"))
+
+data_ns <- preparar_base_ns(data_final)
+
+if (!dir.exists("figuras_no_supervisado")) {
+  dir.create("figuras_no_supervisado")
+}
+
+res_pca <- ejecutar_pca_ns(data_ns)
+guardar_figura_pca_conjunta(res_pca, "figuras_no_supervisado/pca_conjunto.png")
+guardar_figura_pca_precio(res_pca, data_final, "figuras_no_supervisado/pca_precio.png")
+
+res_fuzzy <- ejecutar_fuzzy_ns(data_ns)
+guardar_figura_fuzzy(res_fuzzy, "figuras_no_supervisado/fuzzy_binario.png")
+```
+
+Las dos primeras componentes principales explican conjuntamente el **62.45 %** de la variabilidad total, por lo que proporcionan una representación sintética razonable de la estructura multivariante de la base de datos. La primera componente se relaciona principalmente con las variables agregadas de equipamiento, mientras que la segunda recoge en mayor medida diferencias asociadas al **kilometraje**, al **estado** y al **año** del vehículo.
+
+```{r pca-figura, echo=FALSE, out.width="100%", fig.cap="Representación conjunta del análisis de componentes principales (PCA). A la izquierda se muestran las variables activas y la posición relativa reescalada de los grupos Bajo y Alto. A la derecha se representa la proyección de los vehículos sobre las dos primeras componentes principales.", fig.scap="Representación conjunta del PCA", fig.pos='!htbp'}
+knitr::include_graphics("figuras_no_supervisado/pca_conjunto.png")
+```
+
+La figura combina, por una parte, la proyección de las **variables activas** y la posición relativa de los grupos **Bajo** y **Alto** y, por otra, la distribución de las observaciones en el plano definido por las dos primeras componentes principales. En ella se observa que los vehículos clasificados como **Alto** tienden a situarse en regiones del plano factorial asociadas a mayores niveles de equipamiento, mientras que los vehículos clasificados como **Bajo** se concentran relativamente más en la zona opuesta. No obstante, la superposición parcial entre ambas nubes pone de manifiesto que la separación entre perfiles no es completamente limpia, sino que existe una región intermedia con rasgos compartidos.
+
+En conjunto, el PCA sugiere que la diferenciación entre vehículos con menor y mayor nivel tecnológico no depende de una única variable aislada, sino de una combinación de rasgos estructurales y de equipamiento. Aunque ambos grupos presentan cierta separación en el plano factorial, también se observa una zona intermedia compatible con vehículos de perfil mixto.
+
+## PCA y gradiente de precio
+
+Además de interpretar el PCA en relación con la diferenciación entre vehículos de nivel tecnológico bajo y alto, resulta útil utilizar el **precio** como variable ilustrativa externa sobre el mismo plano factorial. De este modo, puede analizarse si los ejes latentes identificados por el PCA también guardan relación con la valorización económica de los vehículos, sin introducir `Price` como variable activa en la construcción del modelo.
+
+```{r pca-precio-figura, echo=FALSE, out.width="82%", fig.cap="Biplot del PCA coloreado por precio. La coloración actúa como referencia externa sobre el espacio factorial construido a partir de las variables numéricas del vehículo y del equipamiento.", fig.scap="Biplot del PCA coloreado por precio", fig.pos='!htbp'}
+knitr::include_graphics("figuras_no_supervisado/pca_precio.png")
+```
+La coloración por precio sugiere que el valor económico de los vehículos no responde a un único gradiente dentro del plano factorial. Por un lado, los vehículos de mayor precio tienden a concentrarse en zonas asociadas a un mayor nivel de equipamiento. Por otro, también aparecen en regiones vinculadas a coches más recientes, en mejor estado y con menor kilometraje.
+
+En consecuencia, el PCA no solo ayuda a interpretar la separación tecnológica estudiada en clasificación, sino que también sugiere que el precio se organiza a partir de varias dimensiones complementarias. Esta lectura resulta coherente con la parte de regresión, donde el precio no depende de una única variable dominante, sino de la combinación de equipamiento, recencia y nivel de uso.
+
+## Fuzzy clustering
+
+Con el fin de estudiar la nitidez de la separación entre los dos niveles tecnológicos definidos en la clasificación, se aplicó un clustering difuso utilizando exclusivamente variables estructurales del vehículo y otras dimensiones agregadas del equipamiento. Para evitar circularidad, en este procedimiento no se utilizó equip_tech como variable activa.
+
+**Tabla 5. Indicadores de ambigüedad del fuzzy clustering.**
+```{r fuzzy-tabla, echo=FALSE, results='asis'}
+tabla_fuzzy_out <- res_fuzzy$tabla_fuzzy_comparacion %>%
+  dplyr::rename(
+    Comparacion = Comparacion,
+    n = n,
+    Pertenencia_max_media = `Pertenencia máxima media`,
+    Pct_pertenencia_max_inferior_060 = `% con pertenencia máx < 0.60`,
+    Pct_pertenencia_max_inferior_070 = `% con pertenencia máx < 0.70`
+  )
+
+tabla_pdf(
+  res_fuzzy$tabla_fuzzy_comparacion,
+  digits = 2,
+  row.names = FALSE
+)
+```
+
+Los resultados del fuzzy clustering refuerzan esta interpretación. En particular, un **9.19 %** de las observaciones presenta una pertenencia máxima inferior a **0.60**, y un **25.16 %** queda por debajo de **0.70**. Esto indica que, aunque muchos vehículos se asignan con claridad a uno de los dos perfiles, existe una proporción no despreciable de casos con pertenencias difusas o intermedias.
+
+
+```{r fuzzy-figura, echo=FALSE, out.width="94%", fig.cap="Fuzzy clustering en vehículos con nivel tecnológico bajo y alto. Los tonos más próximos a rojo indican observaciones más ambiguas, mientras que los tonos verdes representan una mayor correspondencia con uno de los perfiles difusos detectados.", fig.pos='H'}
+knitr::include_graphics("figuras_no_supervisado/fuzzy_binario.png")
+```
+Visualmente, esta situación se aprecia en la banda central del gráfico, donde se concentran numerosos puntos con menor pertenencia máxima. En consecuencia, la dificultad relativa observada en la clasificación supervisada no debe interpretarse como una mera limitación del modelo, sino también como reflejo de una estructura de datos en la que parte de los vehículos comparte características de ambos perfiles tecnológicos.
+
+En conjunto, el análisis no supervisado refuerza y matiza la interpretación obtenida en la parte supervisada. Por un lado, la formulación binaria **Bajo/Alto** resulta útil y razonable desde el punto de vista predictivo, tal como muestran los resultados de clasificación. Por otro, tanto el **PCA** como el **fuzzy clustering** evidencian que la frontera entre ambos perfiles no es completamente rígida. Además, el biplot coloreado por precio sugiere que los ejes latentes identificados también están relacionados con la valorización económica de los vehículos.
+
+En consecuencia, el problema no debe interpretarse como una separación dicotómica perfecta, sino como una diferenciación útil entre grupos extremos dentro de una estructura multivariante más continua. Esta misma idea resulta especialmente relevante al abordar el problema de regresión, donde el objetivo ya no será discriminar entre perfiles, sino cuantificar cómo estas dimensiones estructurales se traducen en diferencias de precio.
+
+# Regresión {#sec:regresion}
+
+Una vez estudiada la diferenciación entre perfiles tecnológicos y analizada la estructura interna de la base mediante técnicas no supervisadas, se abordó un **problema de regresión** orientado a predecir el **precio del vehículo** a partir de sus características estructurales, comerciales y de equipamiento. Este bloque permite trasladar a una variable económica concreta varias de las relaciones ya sugeridas en las secciones anteriores, especialmente las asociadas al equipamiento, la antigüedad, el estado y el kilometraje.
+
+Para estabilizar la variabilidad de la variable objetivo y reducir la influencia de la asimetría de la distribución, el modelado se realizó sobre `log_Price`, aunque posteriormente las predicciones se transformaron de nuevo a la escala original para facilitar la interpretación económica de los resultados.
+
+Los modelos evaluados fueron **regresión lineal múltiple**, **árbol de regresión**, **Random Forest**, **SVM radial**, **kNN** y, adicionalmente, **XGBoost** como método de boosting. La comparación entre alternativas se apoyó en los resultados de **validación cruzada de 5 pliegues** sobre el conjunto de entrenamiento y en la evaluación posterior sobre un conjunto **test** independiente.
+
+```{r reg_helpers_run, include=FALSE, warning=FALSE, message=FALSE}
+preparar_objetivo_regresion <- function(data_final) {
+  data_final %>%
+    dplyr::filter(!is.na(Price)) %>%
+    dplyr::filter(Price >= 1000, Price <= 1000000) %>%
+    dplyr::mutate(log_Price = log(Price))
+}
+
+preparar_predictores_regresion <- function(data_reg_clean) {
+  data_reg_clean %>%
+    dplyr::mutate(
+      Brand_top = forcats::fct_lump_n(factor(Brand), n = 20, other_level = "Other"),
+      Model_top = forcats::fct_lump_n(factor(Model), n = 50, other_level = "Other"),
+      Location_top = forcats::fct_lump_n(factor(Location), n = 30, other_level = "Other"),
+      Sector_top = forcats::fct_lump_n(factor(Sector), n = 50, other_level = "Other"),
+      Year = as.integer(as.character(Year)),
+      Condition_num = as.numeric(as.character(Condition_num)),
+      Mileage_mean = as.numeric(as.character(Mileage_mean)),
+      Fiscal.Power = as.numeric(as.character(Fiscal.Power)),
+      Gearbox = factor(Gearbox),
+      Origin = factor(Origin),
+      First.Owner = factor(First.Owner),
+      Fuel = factor(Fuel),
+      Number.of.Doors = factor(Number.of.Doors),
+      equip_security = as.numeric(as.character(equip_security)),
+      equip_driving_assist = as.numeric(as.character(equip_driving_assist)),
+      equip_comfort = as.numeric(as.character(equip_comfort)),
+      equip_tech = as.numeric(as.character(equip_tech))
+    ) %>%
+    dplyr::select(
+      log_Price,
+      Year,
+      Condition_num,
+      Mileage_mean,
+      Fiscal.Power,
+      Gearbox,
+      Origin,
+      First.Owner,
+      Fuel,
+      Number.of.Doors,
+      Brand_top,
+      Model_top,
+      Location_top,
+      Sector_top,
+      equip_security,
+      equip_driving_assist,
+      equip_comfort,
+      equip_tech
+    ) %>%
+    tidyr::drop_na() %>%
+    droplevels()
+}
+
+crear_matrices_regresion <- function(data_reg_prep, seed = 123) {
+  set.seed(seed)
+
+  id_train <- caret::createDataPartition(data_reg_prep$log_Price, p = 0.7, list = FALSE)
+
+  train_raw <- data_reg_prep[id_train, , drop = FALSE]
+  test_raw  <- data_reg_prep[-id_train, , drop = FALSE]
+
+  vars_factor <- c(
+    "Gearbox", "Origin", "First.Owner", "Fuel", "Number.of.Doors",
+    "Brand_top", "Model_top", "Location_top", "Sector_top"
+  )
+
+  for (v in vars_factor) {
+    test_raw[[v]] <- factor(test_raw[[v]], levels = levels(train_raw[[v]]))
+  }
+
+  dummies <- caret::dummyVars(log_Price ~ ., data = train_raw, fullRank = TRUE)
+
+  x_train_mat <- predict(dummies, newdata = train_raw)
+  x_test_mat  <- predict(dummies, newdata = test_raw)
+
+  # Para LM, Árbol, RF, SVM y kNN:
+  x_train <- as.data.frame(x_train_mat, check.names = FALSE)
+  x_test  <- as.data.frame(x_test_mat, check.names = FALSE)
+
+  x_test <- x_test[, colnames(x_train), drop = FALSE]
+
+  nzv <- caret::nearZeroVar(x_train)
+  if (length(nzv) > 0) {
+    x_train <- x_train[, -nzv, drop = FALSE]
+    x_test  <- x_test[, -nzv, drop = FALSE]
+  }
+
+  # Para XGBoost: copia con nombres saneados
+  x_train_xgb <- x_train
+  x_test_xgb  <- x_test
+
+  colnames(x_train_xgb) <- make.names(colnames(x_train_xgb), unique = TRUE)
+  colnames(x_test_xgb)  <- colnames(x_train_xgb)
+
+  x_train_xgb <- as.matrix(x_train_xgb)
+  x_test_xgb  <- as.matrix(x_test_xgb)
+
+  y_train <- as.numeric(train_raw$log_Price)
+  y_test  <- as.numeric(test_raw$log_Price)
+
+  list(
+    train_raw = train_raw,
+    test_raw = test_raw,
+    x_train = x_train,
+    x_test = x_test,
+    x_train_xgb = x_train_xgb,
+    x_test_xgb = x_test_xgb,
+    y_train = y_train,
+    y_test = y_test
+  )
+}
+
+extraer_mejor_reg <- function(modelo, nombre_modelo) {
+  res <- modelo$results
+  pars <- modelo$bestTune
+
+  if (!is.null(pars) && ncol(pars) > 0) {
+    for (j in seq_len(ncol(pars))) {
+      res <- res[res[[names(pars)[j]]] == pars[[j]], , drop = FALSE]
+    }
+  }
+
+  data.frame(
+    Modelo = nombre_modelo,
+    RMSE_CV = round(res$RMSE[1], 4),
+    MAE_CV = round(res$MAE[1], 4),
+    Rsquared_CV = round(res$Rsquared[1], 4)
+  )
+}
+
+obtener_metricas_test_reg <- function(modelo, nombre, x_test, y_test, x_test_xgb = NULL) {
+  if (inherits(modelo$finalModel, "xgb.Booster")) {
+    if (is.null(x_test_xgb)) {
+      stop("Para XGBoost debes proporcionar x_test_xgb.")
+    }
+    pred_log <- as.numeric(predict(modelo, newdata = x_test_xgb))
+  } else {
+    pred_log <- as.numeric(predict(modelo, newdata = x_test))
+  }
+
+  y_test <- as.numeric(y_test)
+
+  pred_real <- exp(pred_log)
+  obs_real  <- exp(y_test)
+
+  nmse <- mean((pred_log - y_test)^2, na.rm = TRUE) / var(y_test, na.rm = TRUE)
+  nmae <- mean(abs(pred_log - y_test), na.rm = TRUE) / sd(y_test, na.rm = TRUE)
+
+  data.frame(
+    Modelo = nombre,
+    RMSE_test = round(sqrt(mean((pred_log - y_test)^2, na.rm = TRUE)), 4),
+    MAE_test = round(mean(abs(pred_log - y_test), na.rm = TRUE), 4),
+    NMSE_test = round(nmse, 4),
+    NMAE_test = round(nmae, 4),
+    MAPE_test = round(mean(abs(obs_real - pred_real) / pmax(obs_real, 1e-8), na.rm = TRUE), 4)
+  )
+}
+
+calc_rec <- function(errores, modelo_nombre) {
+  tolerancias <- seq(0, 100000, length.out = 500)
+  n <- length(errores)
+  accuracy <- sapply(tolerancias, function(t) sum(errores <= t) / n)
+  data.frame(Tolerancia = tolerancias, Accuracy = accuracy, Modelo = modelo_nombre)
+}
+```
+
+
+De forma análoga a la parte de clasificación, el entrenamiento completo de los modelos de regresión se ejecutó previamente y los objetos resultantes se guardaron en disco. Las funciones auxiliares, la preparación del entorno de entrenamiento y el ajuste completo de modelos pueden consultarse en **los Anexos \@ref(anx:reg-func), \@ref(anx:reg-train) y \@ref(anx:reg-extra)**. Con el fin de no romper la continuidad del cuerpo principal, se muestra a continuación un bloque mínimo de código operativo con la preparación general del problema, la carga de resultados y la lectura del objeto de explicabilidad local.
+
+```{r regresion_codigo_guia, echo=TRUE, eval=FALSE}
+# Preparación de la base de regresión
+# (funciones completas: Anexo I)
+data_reg_clean <- preparar_objetivo_regresion(data_final)
+data_reg_prep  <- preparar_predictores_regresion(data_reg_clean)
+obj_reg <- crear_matrices_regresion(data_reg_prep, seed = 123)
+
+# Carga de resultados finales previamente guardados
+# (entrenamiento completo: Anexo J)
+resultados_cv_reg <- readRDS(file.path(RUTA_TRABAJO, "resultados_cv_regresion_final.rds"))
+resultados_test_todos_reg <- readRDS(file.path(RUTA_TRABAJO, "resultados_test_todos_regresion_final.rds"))
+predicciones_log <- readRDS(file.path(RUTA_TRABAJO, "predicciones_mejor_modelo_regresion_final.rds"))
+imp_vars_mejor_reg <- readRDS(file.path(RUTA_TRABAJO, "imp_vars_mejor_regresion_final.rds"))
+explicacion_shap <- readRDS(file.path(RUTA_TRABAJO, "shap_obj_regresion_final.rds"))
+
+# Construcción de figuras del bloque principal
+p_rec_todos <- ggplot(df_rec_todos, aes(x = Tolerancia, y = Accuracy, color = Modelo)) +
+  geom_line()
+
+p_dispersion <- ggplot(predicciones_dinero, aes(x = Real_dirham, y = Pred_dirham)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed")
+
+plot(imp_vars_mejor_reg, top = 15)
+plot_shap_method <- getS3method("plot", "predict_parts")
+plot_shap_method(explicacion_shap)
+```
+
+
+```{r reg_carga_resultados, include=FALSE, warning=FALSE, message=FALSE}
+resultados_cv_reg <- readRDS(file.path(RUTA_TRABAJO, "resultados_cv_regresion_final.rds"))
+resultados_test_todos_reg <- readRDS(file.path(RUTA_TRABAJO, "resultados_test_todos_regresion_final.rds"))
+mejor_nombre_cv_reg <- readRDS(file.path(RUTA_TRABAJO, "mejor_nombre_cv_regresion_final.rds"))
+predicciones_log <- readRDS(file.path(RUTA_TRABAJO, "predicciones_mejor_modelo_regresion_final.rds"))
+imp_vars_mejor_reg <- readRDS(file.path(RUTA_TRABAJO, "imp_vars_mejor_regresion_final.rds"))
+```
+
+## Resultados en validación cruzada
+
+La tabla siguiente resume el rendimiento de los distintos modelos de regresión en validación cruzada. En esta fase se comparan los modelos sobre la variable transformada `log_Price`, utilizando como criterios principales el **RMSE**, el **MAE** y el **R²**.
+
+**Tabla 6. Comparación de modelos en validación cruzada (escala logarítmica).**
+```{r reg_tabla_cv, echo=FALSE, warning=FALSE, message=FALSE, results='asis'}
+resultados_cv_tabla_reg <- resultados_cv_reg %>%
+  rename(
+    RMSE = RMSE_CV,
+    MAE = MAE_CV,
+    `R^2` = Rsquared_CV
+  )
+
+tabla_pdf(
+  resultados_cv_tabla_reg,
+  digits = 4,
+  align = "lccc",
+  row.names = FALSE
+)
+```
+
+En términos generales, los modelos de tipo no lineal y de ensamblado mostraron un comportamiento más competitivo que la regresión lineal múltiple. En particular, **Random Forest** y **XGBoost** destacaron por ofrecer los menores errores medios y una mayor capacidad explicativa, mientras que **árbol** y **kNN** presentaron un rendimiento más discreto. Estos resultados sugieren que la relación entre las características del vehículo y su precio no es estrictamente lineal, sino que incorpora interacciones y efectos no lineales que los métodos basados en árboles captan con mayor flexibilidad.
+
+## Resultados en test
+
+Una vez seleccionados y ajustados los modelos sobre el conjunto de entrenamiento, se evaluó su rendimiento final en el conjunto **test**, mantenido independiente durante todo el proceso de modelización. En esta etapa se presentan las métricas en escala logarítmica normalizada y también el **MAPE**, con el fin de complementar la lectura del error relativo en la escala original del precio.
+
+**Tabla 7. Comparación final de todos los modelos en el conjunto test.**
+```{r reg_tabla_test, echo=FALSE, warning=FALSE, message=FALSE, results='asis'}
+resultados_test_tabla_reg <- resultados_test_todos_reg %>%
+  rename(
+    RMSE = RMSE_test,
+    MAE = MAE_test,
+    NMSE = NMSE_test,
+    NMAE = NMAE_test,
+    MAPE = MAPE_test
+  )
+
+tabla_pdf(
+  resultados_test_tabla_reg,
+  digits = 4,
+  align = "lccccc",
+  row.names = FALSE
+)
+```
+Los resultados en test permiten comprobar si el patrón observado en validación cruzada se mantiene al generalizar sobre datos no vistos. Cuando un modelo presenta simultáneamente valores reducidos de **RMSE**, **MAE** y **MAPE**, puede considerarse que ofrece una estimación más estable y útil desde el punto de vista predictivo. En este sentido, los métodos de ensamblado tienden a mantener una posición ventajosa frente a los modelos más simples.
+
+que ofrece una estimación más estable y útil desde el punto de vista predictivo. En este sentido, los métodos de ensamblado tienden a mantener una posición ventajosa frente a los modelos más simples.
+
+## Curvas REC comparativas
+
+Con el fin de complementar la comparación numérica entre modelos, se representaron las **curvas REC** (*Regression Error Characteristic*), que muestran el porcentaje de predicciones que quedan dentro de distintos niveles de tolerancia del error absoluto. Este tipo de representación permite evaluar de forma visual la precisión relativa de los modelos a lo largo de diferentes márgenes de error en dirhams.
+
+```{r reg-plot-rec, echo=FALSE, warning=FALSE, message=FALSE, fig.width=5.1, fig.height=3.2, out.width="80%", fig.cap="Curvas REC comparativas de los modelos de regresión en el conjunto test.", fig.scap="Curvas REC comparativas", fig.pos="!htbp"}
+load(file.path(RUTA_TRABAJO, "datos_imputados.RData"))
+
+data_reg_clean <- preparar_objetivo_regresion(data_final)
+data_reg_prep  <- preparar_predictores_regresion(data_reg_clean)
+obj_reg <- crear_matrices_regresion(data_reg_prep, seed = 123)
+invisible(list2env(obj_reg, envir = .GlobalEnv))
+
+mapa_modelos_reg <- list(
+  "Regresión Lineal" = readRDS(file.path(RUTA_TRABAJO, "modelo_regresion_lineal_reg_final.rds")),
+  "Árbol"            = readRDS(file.path(RUTA_TRABAJO, "modelo_arbol_reg_final.rds")),
+  "Random Forest"    = readRDS(file.path(RUTA_TRABAJO, "modelo_random_forest_reg_final.rds")),
+  "SVM"              = readRDS(file.path(RUTA_TRABAJO, "modelo_svm_radial_reg_final.rds")),
+  "kNN"              = readRDS(file.path(RUTA_TRABAJO, "modelo_knn_reg_final.rds"))
+)
+
+if (file.exists(file.path(RUTA_TRABAJO, "modelo_xgboost_reg_final.rds"))) {
+  mapa_modelos_reg[["XGBoost"]] <- readRDS(file.path(RUTA_TRABAJO, "modelo_xgboost_reg_final.rds"))
+}
+
+precio_real <- exp(y_test)
+
+lista_rec <- lapply(names(mapa_modelos_reg), function(nombre) {
+  modelo_i <- mapa_modelos_reg[[nombre]]
+
+  if (inherits(modelo_i$finalModel, "xgb.Booster")) {
+    pred_log <- as.numeric(predict(modelo_i, newdata = x_test_xgb))
+  } else {
+    pred_log <- as.numeric(predict(modelo_i, newdata = x_test))
+  }
+
+  errores <- abs(precio_real - exp(pred_log))
+  calc_rec(errores, nombre)
+})
+
+df_rec_todos <- dplyr::bind_rows(lista_rec)
+
+p_rec_todos <- ggplot(df_rec_todos, aes(x = Tolerancia, y = Accuracy, color = Modelo)) +
+  geom_line(linewidth = 0.85) +
+  scale_y_continuous(labels = scales::percent_format(), limits = c(0, 1)) +
+  scale_x_continuous(labels = scales::comma_format()) +
+  theme_minimal(base_size = 10) +
+  labs(
+    x = "Tolerancia al error absoluto (dirhams)",
+    y = "Precisión",
+    color = "Modelo"
+  ) +
+  guides(color = guide_legend(nrow = 1)) +
+  theme(
+    plot.title = element_blank(),
+    plot.subtitle = element_blank(),
+    legend.position = "bottom",
+    legend.title = element_text(face = "bold", size = 8),
+    legend.text = element_text(size = 7),
+    axis.title = element_text(size = 8.5),
+    axis.text = element_text(size = 7.5)
+  )
+
+print(p_rec_todos)
+```
+
+\FloatBarrier
+
+Las curvas REC permiten interpretar el rendimiento de los modelos desde una perspectiva más aplicada. Un modelo más preciso tenderá a situarse por encima del resto, ya que alcanza porcentajes superiores de acierto para un mismo umbral de tolerancia. Esta representación resulta especialmente útil en problemas de valoración económica, donde no solo importa el error medio, sino también la proporción de tasaciones que quedan razonablemente próximas al valor real.
+
+
+
+## Importancia global de variables
+
+Además de la comparación predictiva, se analizó la importancia global de variables del modelo final de regresión con el fin de identificar qué predictores sostienen en mayor medida la estimación del precio. Este análisis complementa la lectura de las métricas y permite trasladar la interpretación del modelo al contexto económico del problema.
+
+```{r reg-importancia-principal, echo=FALSE, warning=FALSE, message=FALSE, fig.width=4.6, fig.height=2.6, out.width="68%", fig.cap="Importancia global de variables del modelo final de regresión.", fig.scap="Importancia global en regresión", fig.pos='!htbp'}
+if (!is.null(imp_vars_mejor_reg)) {
+  par(mar = c(3.2, 9, 2.2, 1.2), cex.axis = 0.72, cex.main = 0.85)
+  plot(
+    imp_vars_mejor_reg,
+    top = 12,
+    main = paste("Importancia de variables -", mejor_nombre_cv_reg)
+  )
+}
+```
+
+La figura muestra que el precio no depende de una única característica aislada, sino de la combinación de varios atributos estructurales, comerciales y de equipamiento. En particular, el **año de matriculación** y la **potencia fiscal** se situaron entre las variables con mayor peso explicativo, lo que refuerza la coherencia económica del modelo y su capacidad para recoger patrones relevantes del mercado de vehículos usados.
+
+\FloatBarrier
+
+## Predicciones frente a valores reales
+
+Con el fin de evaluar visualmente el ajuste del modelo final en la escala original del problema, se representaron conjuntamente los valores reales y las predicciones obtenidas en el conjunto test.
+
+```{r reg-plot-dispersion, echo=FALSE, warning=FALSE, message=FALSE, fig.width=5.0, fig.height=3.4, out.width="80%", fig.cap="Predicciones frente a observaciones reales del mejor modelo de regresión en el conjunto test.", fig.scap="Predicciones frente a valores reales", fig.pos='H'}
+predicciones_dinero <- predicciones_log %>%
+  mutate(
+    Real_dirham = exp(Real),
+    Pred_dirham = exp(Prediccion)
+  )
+
+mae_real <- mean(abs(predicciones_dinero$Real_dirham - predicciones_dinero$Pred_dirham))
+mape_real <- mean(abs(predicciones_dinero$Real_dirham - predicciones_dinero$Pred_dirham) / predicciones_dinero$Real_dirham) * 100
+rmse_real <- sqrt(mean((predicciones_dinero$Real_dirham - predicciones_dinero$Pred_dirham)^2))
+
+p_dispersion <- ggplot(predicciones_dinero, aes(x = Real_dirham, y = Pred_dirham)) +
+  geom_point(alpha = 0.30, color = "#264653", size = 1.1) +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed", linewidth = 0.8) +
+  theme_minimal(base_size = 10) +
+  labs(
+    x = "Precio real (dirhams)",
+    y = "Precio predicho (dirhams)"
+  ) +
+  scale_x_continuous(labels = comma) +
+  scale_y_continuous(labels = comma) +
+  theme(
+    plot.title = element_blank(),
+    plot.subtitle = element_blank(),
+    axis.title = element_text(face = "bold")
+  )
+
+print(p_dispersion)
+```
+
+El gráfico de dispersión permite evaluar visualmente el ajuste del modelo final en la escala original del precio. Cuanto más próximas se sitúan las observaciones a la diagonal identidad, mayor es la concordancia entre los valores reales y las predicciones. Las desviaciones sistemáticas respecto a dicha línea pueden indicar zonas del rango de precios donde el modelo tiende a sobrestimar o infraestimar el valor de los vehículos. Además, el modelo final presentó un **MAE de 23.805 dirhams**, un **MAPE del 23,2 %** y un **RMSE de 55.010 dirhams**.
+
+\FloatBarrier
+
+## Explicabilidad local mediante valores SHAP
+
+Además de la interpretación global, se incorporó una explicación local basada en valores SHAP con el fin de descomponer la predicción de una observación concreta del conjunto test en contribuciones individuales de sus variables.
+
+```{r reg-shap-principal, echo=FALSE, warning=FALSE, message=FALSE, fig.width=4.2, fig.height=3.8, out.width="78%", fig.cap="Explicabilidad local mediante valores SHAP para una observación del conjunto test.", fig.scap="Explicabilidad local con valores SHAP", fig.pos='H'}
+if (!exists("data_final")) {
+  load(file.path(RUTA_TRABAJO, "datos_imputados.RData"))
+}
+
+data_reg_clean <- preparar_objetivo_regresion(data_final)
+data_reg_prep  <- preparar_predictores_regresion(data_reg_clean)
+obj_reg <- crear_matrices_regresion(data_reg_prep, seed = 123)
+invisible(list2env(obj_reg, envir = .GlobalEnv))
+
+precio_real_coche <- exp(y_test[10])
+
+explicacion_shap <- readRDS(file.path(RUTA_TRABAJO, "shap_obj_regresion_final.rds"))
+
+stopifnot(!is.null(explicacion_shap))
+stopifnot("predict_parts" %in% class(explicacion_shap))
+
+shap_plot <- plot(explicacion_shap) +
+  theme_minimal(base_size = 10.5) +
+  labs(
+    title = "Explicabilidad local: valores SHAP",
+    subtitle = paste0("Precio real: ", scales::comma(round(precio_real_coche, 0)), " dirhams"),
+    y = "Precio (dirhams)"
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", size = 9),
+    plot.subtitle = element_text(size = 7),
+    axis.title = element_text(size = 7.5),
+    axis.text = element_text(size = 6),
+    legend.title = element_text(size = 6.5),
+    legend.text = element_text(size = 6),
+    plot.margin = ggplot2::margin(3, 3, 3, 3, unit = "pt")
+  )
+
+print(shap_plot)
+```
+
+En esta observación concreta, la predicción queda explicada por la combinación de varios efectos. Los factores que más empujan el precio a la baja son, sobre todo, la **caja manual**, la **antigüedad del vehículo**, el **kilometraje** y parte de sus características técnicas. Frente a ello, algunas variables aportan un efecto positivo, pero con menor intensidad, por lo que el balance final sigue siendo claramente reductor sobre la tasación estimada.
+
+En conjunto, la regresión confirma que el **precio** depende de varios factores que actúan de forma simultánea, y no de una única variable aislada. Los modelos más flexibles captaron mejor esta complejidad, y las herramientas de interpretación permitieron además entender qué características tienden a aumentar o reducir la valoración final del vehículo.
+
+\FloatBarrier
+
+# Conclusiones {#sec:conclusiones}
+
+Los resultados obtenidos permiten extraer tres ideas principales. En primer lugar, el problema de **clasificación** mostró que es posible discriminar de forma razonable entre vehículos con nivel tecnológico **bajo** y **alto**, siendo **Random Forest** el modelo con mejor comportamiento global tanto en validación cruzada como en test. Las variables más influyentes fueron, sobre todo, el año del vehículo, el estado, el kilometraje, la potencia fiscal y determinadas características comerciales.
+
+En segundo lugar, el **análisis no supervisado** confirmó que esta diferenciación binaria resulta útil, pero no completamente rígida. El PCA y el fuzzy clustering mostraron que existe una estructura continua con zonas intermedias, lo que ayuda a interpretar por qué la clasificación no alcanza una separación perfecta. Además, el biplot coloreado por precio puso de manifiesto que los gradientes latentes del espacio factorial también guardan relación con la valorización económica de los vehículos.
+
+Finalmente, en el problema de **regresión**, los modelos no lineales y de ensamblado volvieron a mostrar un mejor comportamiento que los enfoques más simples, lo que sugiere que el precio depende de relaciones complejas entre variables estructurales, comerciales y de equipamiento. En conjunto, el trabajo muestra cómo la combinación de técnicas supervisadas y no supervisadas permite no solo obtener modelos predictivos competitivos, sino también interpretar de forma más rica la estructura del mercado de vehículos usados.
+
+\FloatBarrier
+\clearpage
+
+# Anexos {#sec:anexos}
+
+En esta sección se recoge el material complementario que da soporte al análisis desarrollado en el cuerpo principal del trabajo. En particular, se incluye el detalle del proceso de limpieza, transformación e imputación de la base de datos, así como fragmentos de código y salidas adicionales que, por su carácter técnico, no se han incorporado en la parte principal del documento.
+
+En los apartados siguientes se describe de forma detallada dicho preprocesado, incluyendo las recodificaciones aplicadas, la construcción de variables derivadas y el tratamiento de los valores faltantes.
+## Anexo A. Librerías utilizadas
+En este anexo se muestra el bloque de configuración inicial y carga de librerías utilizado al comienzo del documento.
+
+En el desarrollo del presente trabajo se utilizaron las siguientes librerías de R: `dplyr` [@R-dplyr], `mice` [@R-mice], `forcats` [@R-forcats], `stringr` [@R-stringr], `knitr` [@R-knitr], `caret` [@R-caret], `ggplot2` [@R-ggplot2], `tidyr` [@R-tidyr], `pROC` [@R-pROC], `readxl` [@R-readxl], `readr` [@R-readr], `purrr` [@R-purrr], `scales` [@R-scales], `writexl` [@R-writexl], `e1071` [@R-e1071], `randomForest` [@R-randomForest], `ipred` [@R-ipred], `rpart` [@R-rpart], `doParallel` [@R-doParallel] y `gbm` [@R-gbm].
+
+## Anexo B. Proceso de limpieza y transformación de la base de datos
+
+En este anexo se presenta el proceso de depuración y adecuación de la base de datos original previo al análisis. Concretamente, se revisan las variables para detectar inconsistencias de formato, categorías abiertas, valores ausentes y posibles anomalías que pudiesen afectar a las etapas posteriores de modelización.
+
+Como primer paso, se procedió a la lectura de la base de datos original con el fin de inspeccionar su estructura general y verificar la naturaleza de las variables incluidas.
+
+```{r anexo_b_lectura_base_original, message=FALSE, warning=FALSE}
+ruta_datos_original <- file.path(RUTA_TRABAJO, "datos_g9_2.xlsx")
+
+if (!file.exists(ruta_datos_original)) {
+  ruta_datos_original <- file.path(RUTA_TRABAJO, "datos_g9.xlsx")
+}
+
+if (!file.exists(ruta_datos_original)) {
+  stop(
+    "No se encuentra ni 'datos_g9_2.xlsx' ni 'datos_g9.xlsx' dentro de: ",
+    normalizePath(RUTA_TRABAJO, winslash = "/", mustWork = FALSE)
+  )
+}
+
+data <- read_excel(ruta_datos_original)
+```
+
+La variable Fiscal.Power estaba almacenada como texto, incluyendo la unidad de medida “CV” y, en algunos casos, categorías abiertas como “Plus de 41 CV”. Para poder tratarla como variable cuantitativa, se eliminó la unidad de medida y se conservó únicamente el valor numérico. En la categoría abierta superior se adoptó el límite inferior del intervalo, recodificando “Plus de 41 CV” como 41, siguiendo un criterio conservador y homogéneo respecto al resto de observaciones.
+
+```{r}
+data =  data %>%
+  mutate(
+    Fiscal.Power = ifelse(Fiscal.Power == "Plus de 41 CV", "41 CV", Fiscal.Power),
+    Fiscal.Power = parse_number(Fiscal.Power)
+  )
+```
+
+Se detectó al menos un registro en el que la variable `Fuel` contenía un intervalo numérico correspondiente en realidad a la variable `Mileage`, mientras que esta última aparecía vacía. Dado que se trataba de un error evidente de codificación, se trasladó dicho valor a la variable correcta y se registró como ausente en `Fuel`, preservando así la información disponible sin eliminar la observación.
+
+```{r}
+idx <- which(data$Fuel == "35 000 - 39 999")
+
+data$Mileage[idx] <- data$Fuel[idx]
+data$Fuel[idx] <- NA
+```
+
+Las variables `Mileage` y `Year` contenían categorías abiertas que impedían su tratamiento homogéneo. Para mantener la coherencia con la estructura del resto de la base, “Plus de 500 000” se transformó en el intervalo “500 000 - 549 999”, asumiendo la misma amplitud que en los tramos inmediatamente anteriores. Del mismo modo, la categoría “1980 ou plus ancien” se recodificó como 1980, adoptando el extremo inferior del intervalo abierto como valor representativo.
+
+```{r}
+data <- data %>%
+  mutate(
+    Mileage = ifelse(Mileage == "Plus de 500 000", "500 000 - 549 999", Mileage),
+    Year = ifelse(Year == "1980 ou plus ancien", "1980", Year)
+  )
+```
+
+Dado que `Mileage` estaba expresada mediante intervalos, se extrajeron sus extremos inferior y superior con el fin de obtener una representación numérica de la variable. A partir de ambos límites se calculó además una medida resumen, `Mileage_mean`, definida como el punto medio del intervalo. Esta transformación permitió incorporar el kilometraje a los análisis posteriores manteniendo, en la medida de lo posible, la información original contenida en los rangos.
+
+```{r}
+data = data %>%
+  mutate(
+    Mileage_min = parse_number(str_extract(Mileage, "^[^-]+"),
+                               locale = locale(grouping_mark = " ")),
+    Mileage_max = parse_number(str_extract(Mileage, "(?<=-).*"),
+                               locale = locale(grouping_mark = " ")),
+    Mileage_mean = (Mileage_min + Mileage_max) / 2
+  )
+```
+
+Antes de continuar con nuevas recodificaciones, se eliminaron los espacios en blanco sobrantes al inicio y al final de las variables de tipo texto. Esta operación permitió evitar la aparición de categorías aparentemente distintas que, en realidad, correspondían al mismo valor.
+
+```{r}
+data = data %>%
+  mutate(across(where(is.character), str_trim))
+```
+
+Dado que la variable `Equipment` se encontraba almacenada como texto y reunía elementos heterogéneos de equipamiento, fue necesario transformarla en variables estructuradas que pudiesen utilizarse en el análisis posterior. Para ello, se definieron cuatro grupos temáticos de equipamiento: seguridad, ayudas a la conducción, confort y tecnología. Cada grupo se construyó a partir de un conjunto de elementos específicos identificados dentro del contenido textual de `Equipment`.
+
+```{r}
+# grupos de equipamiento
+equip_groups <- list(
+  security = c("Airbags", "ABS", "ESP"),
+  driving_assist = c("Rear Camera", "Parking Sensors", "Speed Limiter", "Cruise Control"),
+  comfort = c("Electric Windows", "Air Conditioning", "Central Locking", 
+              "Leather Seats", "Sunroof", "Alloy Wheels"),
+  tech = c("CD/MP3/Bluetooth", "Onboard Computer", "Navigation System/GPS")
+)
+
+# función para contar cuántos elementos de cada grupo aparecen en Equipment
+count_equipment <- function(text, items) {
+  sum(str_detect(text, fixed(items)))
+}
+```
+
+A continuación, se contabilizó para cada vehículo cuántos elementos de cada grupo estaban presentes en la descripción del equipamiento. De este modo, se generaron cuatro variables numéricas (`equip_security`, `equip_driving_assist`, `equip_comfort` y `equip_tech`) que resumen el nivel de equipamiento del vehículo en cada dimensión considerada.
+
+```{r}
+# crear niveles agregados
+for (grp in names(equip_groups)) {
+  data[[paste0("equip_", grp)]] <- sapply(data$Equipment, count_equipment, items = equip_groups[[grp]])
+}
+
+```
+
+Posteriormente, estas variables cuantitativas se recodificaron en niveles categóricos con el fin de facilitar su interpretación y su posible utilización en los distintos problemas del trabajo. Así, para cada dimensión del equipamiento se definieron categorías ordinales de nivel bajo, medio y alto, atendiendo al número de elementos 
+presentes en cada grupo.
+
+```{r}
+data <- data %>%
+  mutate(
+    security_level = case_when(
+      equip_security <= 1 ~ "Bajo",
+      equip_security == 2 ~ "Medio",
+      TRUE ~ "Alto"
+    ),
+    driving_assist_level = case_when(
+      equip_driving_assist <= 1 ~ "Bajo",
+      equip_driving_assist <= 3 ~ "Medio",
+      TRUE ~ "Alto"
+    ),
+    comfort_level = case_when(
+      equip_comfort <= 2 ~ "Bajo",
+      equip_comfort <= 4 ~ "Medio",
+      TRUE ~ "Alto"
+    ),
+    tech_level = case_when(
+      equip_tech == 0 ~ "Bajo",
+      equip_tech <= 2 ~ "Medio",
+      TRUE ~ "Alto"
+    )
+  )
+```
+
+
+En particular, a partir de la dimensión tecnológica se construyó una variable binaria final, `tech_level_bin`, utilizada posteriormente en el problema de clasificación. Esta variable permitió diferenciar entre vehículos con bajo nivel de conectividad o equipamiento tecnológico (`equip_tech` igual a 0 o 1) y vehículos con nivel alto (`equip_tech` igual a 2 o 3). Esta recodificación binaria se adoptó finalmente por ofrecer una formulación más estable e interpretable del problema de clasificación.
+
+## Anexo C. Imputación de valores faltantes
+### C.1. Diagnóstico inicial de valores faltantes
+Una vez completadas las principales recodificaciones, se examinó la presencia de **valores faltantes** en la base de datos, tanto a nivel de fila como de columna. Este análisis permitió identificar observaciones con un porcentaje elevado de ausencia de información y determinar qué variables requerían un tratamiento específico posterior.
+
+
+**Tabla 8. Filas con más de un 20% de valores faltantes.**
+```{r anexo_c_diag_faltantes, results='asis'}
+faltantes = function(x,digits=3){
+  suma = sum(is.na(x))
+  porcentaje = round(100*mean(is.na(x)),digits=digits)
+  misfalt = c(suma,porcentaje)
+  names(misfalt) = c("Suma","Porcentaje")
+  return(misfalt)
+}
+
+faltFilas = t(apply(data,1,faltantes))
+rownames(faltFilas) = rownames(data)
+
+tabla_pdf(
+  as.data.frame(faltFilas[faltFilas[,"Porcentaje"] > 20,,drop=FALSE]),
+  digits = 3
+)
+```
+**Tabla 9. Variables con valores faltantes.**
+```{r anexo_c_diag_faltantes_1, results='asis'}
+
+faltColumnas = t(apply(data,2,faltantes))
+
+tabla_pdf(
+  as.data.frame(faltColumnas[faltColumnas[,"Porcentaje"] > 0,,drop=FALSE]),
+  digits = 3
+)
+```
+### C.2. Criterios de tratamiento de los valores ausentes
+Antes de aplicar las técnicas de minería de datos, se revisó de forma específica la presencia de valores faltantes en la base. En primer lugar, se eliminaron las observaciones con valores ausentes en `Brand`, `Model` y `Fuel`, dado que se trataba de casos puntuales y su eliminación no afectaba de forma relevante al tamaño muestral.
+
+### C.3. Procedimiento de imputación múltiple
+La imputación de los valores faltantes se llevó a cabo mediante la librería **`mice`**, aplicando un enfoque de **imputación múltiple**. Para ello, se construyó una base auxiliar sin la variable **`Price`**, formada por las variables a imputar y por un conjunto de variables predictoras consideradas informativas para dicho proceso. Posteriormente, se ajustó el tipo de cada variable en función de su naturaleza y se definieron métodos de imputación específicos para cada una de las variables con valores ausentes.
+
+```{r message=FALSE, warning=FALSE, eval=FALSE}
+# Eliminar observaciones con NA puntuales en Brand, Model y Fuel
+data = data %>%
+  filter(!is.na(Brand),
+         !is.na(Model),
+         !is.na(Fuel))
+
+# Price no se imputa porque es la variable objetivo
+data_imp2 = data %>%
+  select(-Price)
+
+# Variables a imputar
+vars_imputar = c("Condition",
+                 "Fiscal.Power",
+                 "Number.of.Doors",
+                 "Origin",
+                 "First.Owner",
+                 "Sector")
+
+# Variables predictoras
+vars_predictoras = c("Brand",
+                     "Year",
+                     "Mileage_mean",
+                     "Gearbox",
+                     "Fuel")
+
+datos_mice = data_imp2[, c(vars_imputar, vars_predictoras)]
+
+# Ajuste del tipo de variables
+datos_mice$Condition = factor(
+  datos_mice$Condition,
+  levels = c("For Parts", "Damaged", "Fair", "Good",
+             "Very Good", "Excellent", "New"),
+  ordered = TRUE
+)
+
+datos_mice$Origin = as.factor(datos_mice$Origin)
+datos_mice$First.Owner = factor(datos_mice$First.Owner, levels = c("No", "Yes"))
+datos_mice$Number.of.Doors = as.factor(datos_mice$Number.of.Doors)
+datos_mice$Sector = as.factor(datos_mice$Sector)
+
+datos_mice$Brand = as.factor(datos_mice$Brand)
+datos_mice$Gearbox = as.factor(datos_mice$Gearbox)
+datos_mice$Fuel = as.factor(datos_mice$Fuel)
+
+# Variables numéricas
+datos_mice$Year = as.integer(datos_mice$Year)
+datos_mice$Mileage_mean = as.numeric(datos_mice$Mileage_mean)
+datos_mice$Fiscal.Power = as.numeric(datos_mice$Fiscal.Power)
+
+# Métodos de imputación
+metodos = make.method(datos_mice)
+metodos[] = ""
+
+metodos["Condition"] = "polr"
+metodos["Fiscal.Power"] = "pmm"
+metodos["Number.of.Doors"] = "cart"
+metodos["Origin"] = "cart"
+metodos["First.Owner"] = "logreg"
+metodos["Sector"] = "cart"
+
+# Matriz de predicción
+pred = make.predictorMatrix(datos_mice)
+diag(pred) = 0
+
+# Quitar Brand como predictor en las categóricas problemáticas
+pred["Number.of.Doors", "Brand"] = 0
+pred["Origin", "Brand"] = 0
+pred["Sector", "Brand"] = 0
+
+# Imputación múltiple
+set.seed(2)
+
+imp = mice(datos_mice,
+           m = 3,
+           maxit = 2,
+           method = metodos,
+           predictorMatrix = pred,
+           printFlag = TRUE)
+
+# Seleccionar la primera imputación
+imp1 = complete(imp, action = 1)
+
+# Recodificar Condition a escala ordinal numérica
+imp1 = imp1 %>%
+  mutate(
+    Condition_num = case_when(
+      Condition == "For Parts" ~ 1,
+      Condition == "Damaged" ~ 2,
+      Condition == "Fair" ~ 3,
+      Condition == "Good" ~ 4,
+      Condition == "Very Good" ~ 5,
+      Condition == "Excellent" ~ 6,
+      Condition == "New" ~ 7,
+      TRUE ~ NA_real_
+    )
+  )
+
+# Reconstruir la base final
+data_final = data_imp2
+cols_imp = names(imp1)
+data_final[, cols_imp] = imp1[, cols_imp]
+
+# Volver a añadir Price sin imputar
+data_final$Price = data$Price
+```
+
+
+```{r anexo_c_cargar_rdata, message=FALSE, warning=FALSE}
+load(file.path(RUTA_TRABAJO, "datos_imputados.RData"))
+
+stopifnot(exists("data_final"))
+
+if (!exists("imp") || !exists("datos_mice")) {
+  stop(
+    "El archivo datos_imputados.RData no contiene 'imp' y/o 'datos_mice'. ",
+    "Si quieres compilar los gráficos de comparación entre imputaciones, ",
+    "debes guardar también esos objetos dentro del .RData."
+  )
+}
+
+```
+### C.4. Comparación entre imputaciones
+
+Una vez generadas las distintas imputaciones, se compararon sus distribuciones con respecto a los datos originales para evaluar si los valores imputados mantenían una estructura razonable. En el caso de las **variables numéricas**, esta comparación se realizó mediante **diagramas de caja**, mientras que en las **variables categóricas** se analizaron las proporciones observadas en cada categoría para los distintos conjuntos imputados.
+
+El objetivo de esta comparación no fue identificar una imputación exacta, sino comprobar que las distribuciones obtenidas resultaban coherentes con la estructura original de los datos y que no introducían **distorsiones relevantes**.
+
+#### Comparación en variables numéricas
+
+```{r anexo_c_boxplot_imputaciones, message=FALSE, warning=FALSE, fig.width=8, fig.height=5.5, fig.align='center', out.width='70%', fig.pos='!htbp'}
+
+datos_box = bind_rows(
+  c(list(datos_mice), lapply(1:imp$m, \(i) complete(imp, i))),
+  .id = "Imputacion"
+) %>%
+  mutate(
+    Imputacion = factor(
+      Imputacion,
+      levels = as.character(1:(imp$m + 1)),
+      labels = c("Original", paste("Imp", 1:imp$m))
+    )
+  )
+
+ggplot(filter(datos_box, !is.na(Fiscal.Power)),
+       aes(x = Imputacion, y = Fiscal.Power, fill = Imputacion)) +
+  geom_boxplot(alpha = 0.8) +
+  labs(title = "Fiscal.Power", x = "Imputación", y = "Valor") +
+  theme_bw() +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5)
+  )
+```
+
+#### Comparación en variables categóricas
+
+```{r anexo_c_barras_imputaciones, message=FALSE, warning=FALSE, fig.width=12, fig.height=8, fig.align='center', out.width='92%', fig.pos='!htbp'}
+
+vars_cat = c("Condition", "Origin", "First.Owner", "Number.of.Doors")
+
+datos_cat = bind_rows(
+  c(list(datos_mice), lapply(1:imp$m, \(i) complete(imp, i))),
+  .id = "Imputacion"
+) %>%
+  mutate(
+    Imputacion = factor(
+      Imputacion,
+      levels = as.character(1:(imp$m + 1)),
+      labels = c("Original", paste("Imp", 1:imp$m))
+    )
+  ) %>%
+  mutate(across(all_of(vars_cat), as.character)) %>%
+  pivot_longer(
+    cols = all_of(vars_cat),
+    names_to = "Variable",
+    values_to = "Nivel"
+  ) %>%
+  filter(!is.na(Nivel), Nivel != "NA") %>%
+  count(Imputacion, Variable, Nivel, name = "n") %>%
+  group_by(Imputacion, Variable) %>%
+  mutate(prop = n / sum(n)) %>%
+  ungroup()
+
+ggplot(datos_cat, aes(x = Nivel, y = prop, fill = Imputacion)) +
+  geom_col(
+    position = position_dodge(width = 0.78),
+    width = 0.68,
+    color = "white",
+    linewidth = 0.2
+  ) +
+  facet_wrap(~Variable, scales = "free_x", ncol = 2) +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
+  scale_fill_manual(values = c(
+    "Original" = "#264653",
+    "Imp 1"    = "#2A9D8F",
+    "Imp 2"    = "#E9C46A",
+    "Imp 3"    = "#F4A261"
+  )) +
+  labs(
+    title = "Comparación de distribuciones: datos originales vs imputaciones",
+    subtitle = "Variables categóricas",
+    x = "Categoría",
+    y = "Porcentaje",
+    fill = "Conjunto"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
+    plot.subtitle = element_text(size = 12, hjust = 0.5),
+    strip.text = element_text(size = 12, face = "bold"),
+    axis.text.x = element_text(angle = 35, hjust = 1, size = 9),
+    legend.position = "bottom",
+    legend.title = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+
+```
+### C.5. Selección de la imputación final
+A partir de la comparación visual de las distribuciones obtenidas, se observó que las distintas imputaciones mantenían un comportamiento global similar al de los datos originales, tanto en las variables numéricas como en las categóricas. Dado que no se apreciaron diferencias sustanciales entre las tres bases imputadas generadas, se optó por seleccionar la primera imputación (`Imp 1`) como versión final de trabajo. Esta decisión permitió simplificar el análisis posterior sin perder coherencia con la estructura observada en los datos originales.
+
+### C.6. Comprobación final de la base de datos imputada
+Una vez reconstruida la base de datos final, se volvió a analizar la presencia de valores faltantes con el fin de verificar que las variables seleccionadas habían quedado correctamente imputadas y que la base se encontraba en condiciones adecuadas para abordar los análisis posteriores.
+
+**Tabla 10. Variables con valores faltantes tras la imputación final.**
+```{r anexo_c_faltantes_finales, results='asis'}
+faltantes = function(x, digits = 3) {
+  suma = sum(is.na(x))
+  porcentaje = round(100 * mean(is.na(x)), digits = digits)
+  c(Suma = suma, Porcentaje = porcentaje)
+}
+
+faltColumnas = t(apply(data_final, 2, faltantes))
+
+tabla_pdf(
+  as.data.frame(faltColumnas[faltColumnas[, "Porcentaje"] > 0, , drop = FALSE]),
+  digits = 3
+)
+```
+
+A partir de este punto, la base de datos final quedó preparada para el desarrollo de los tres problemas planteados en el trabajo. En particular, la versión imputada se utilizó como punto de partida para la construcción de los modelos supervisados y para el análisis no supervisado presentado en la parte principal del documento.
+
+```{r anexo_c_guardado_objetos, eval=FALSE, warning=FALSE}
+write_xlsx(
+  data_final,
+  path = "datos_final_imputados.xlsx"
+)
+
+save(data_final, imp, datos_mice, file = "datos_imputados.RData")
+```
+
+
+## Anexo D. Desarrollo técnico de la clasificación
+
+En este anexo se recoge el desarrollo técnico previo al entrenamiento de los modelos de clasificación. En particular, se incluye la construcción de la base final de modelización, la partición entrenamiento/test, la generación de la matriz dummy y las funciones auxiliares empleadas posteriormente en la evaluación de los modelos.
+
+### D.1. Preparación de la base para clasificación {#anx:clas-prep}
+
+En este apartado se muestra el código utilizado para construir la variable objetivo binaria `tech_level_bin`, seleccionar los predictores de clasificación y generar la base final sobre la que posteriormente se aplican los modelos.
+
+```{r anexo_clas_preparacion, ref.label='clasificacion_preparacion_datos', echo=TRUE, eval=FALSE}
+```
+
+### D.2. Partición train/test y construcción de la matriz de modelización {#anx:clas-split}
+
+A continuación se recoge el bloque correspondiente a la partición hold-out estratificada, la homogeneización de niveles en variables categóricas entre entrenamiento y test, la creación de variables dummy y la eliminación de predictores con varianza casi nula.
+
+```{r anexo_clas_split, ref.label='clasificacion-train-test', echo=TRUE, eval=FALSE}
+```
+
+### D.3. Funciones auxiliares para la clasificación {#anx:clas-func}
+
+En este apartado se recogen las funciones auxiliares utilizadas en el desarrollo del problema de clasificación.
+
+```{r clasificacion_funciones_auxiliares, eval=FALSE}
+extraer_mejor <- function(modelo, nombre_modelo) {
+  res <- modelo$results
+  pars <- modelo$bestTune
+
+  if (!is.null(pars) && ncol(pars) > 0) {
+    for (j in seq_len(ncol(pars))) {
+      res <- res[res[[names(pars)[j]]] == pars[[j]], , drop = FALSE]
+    }
+  }
+
+  data.frame(
+    Modelo = nombre_modelo,
+    Accuracy_CV = round(res$Accuracy[1], 4),
+    Kappa_CV = round(res$Kappa[1], 4)
+  )
+}
+
+entrenar_modelo <- function(nombre, expr_train) {
+  cat("Entrenando", nombre, "...\n")
+  ti <- Sys.time()
+
+  modelo <- tryCatch(
+    eval(expr_train),
+    error = function(e) {
+      cat("ERROR en", nombre, ":", conditionMessage(e), "\n")
+      return(NULL)
+    }
+  )
+
+  tf <- Sys.time()
+  cat(nombre, "terminado en", round(difftime(tf, ti, units = "mins"), 2), "min\n")
+
+  if (!is.null(modelo)) {
+    print(modelo)
+    nombre_archivo <- tolower(nombre)
+    nombre_archivo <- iconv(nombre_archivo, from = "UTF-8", to = "ASCII//TRANSLIT")
+    nombre_archivo <- gsub("[^a-z0-9]+", "_", nombre_archivo)
+
+    saveRDS(modelo, paste0("modelo_", nombre_archivo, "_bin_final.rds"))
+  }
+
+  return(modelo)
+}
+
+obtener_metricas_test <- function(modelo, nombre, x_test, y_test, positive_class = "Alto") {
+  pred_class <- predict(modelo, newdata = x_test)
+  cm <- caret::confusionMatrix(pred_class, y_test, positive = positive_class)
+
+  precision <- unname(cm$byClass["Pos Pred Value"])
+  recall    <- unname(cm$byClass["Sensitivity"])
+
+  f1 <- ifelse(
+    is.na(precision) || is.na(recall) || (precision + recall) == 0,
+    NA,
+    2 * precision * recall / (precision + recall)
+  )
+
+  auc_val <- NA_real_
+
+  prob_pos <- tryCatch({
+    probs <- predict(modelo, newdata = x_test, type = "prob")
+    if (positive_class %in% colnames(probs)) probs[[positive_class]] else NULL
+  }, error = function(e) NULL)
+
+  if (!is.null(prob_pos)) {
+    roc_obj <- tryCatch(
+      pROC::roc(
+        response = y_test,
+        predictor = prob_pos,
+        levels = c("Bajo", "Alto"),
+        direction = "<",
+        quiet = TRUE
+      ),
+      error = function(e) NULL
+    )
+    if (!is.null(roc_obj)) {
+      auc_val <- as.numeric(pROC::auc(roc_obj))
+    }
+  }
+
+  data.frame(
+    Modelo = nombre,
+    Accuracy_test = round(as.numeric(cm$overall["Accuracy"]), 4),
+    Kappa_test = round(as.numeric(cm$overall["Kappa"]), 4),
+    Sensitivity_test = round(as.numeric(cm$byClass["Sensitivity"]), 4),
+    Specificity_test = round(as.numeric(cm$byClass["Specificity"]), 4),
+    Balanced_Accuracy_test = round(as.numeric(cm$byClass["Balanced Accuracy"]), 4),
+    F1_test = round(f1, 4),
+    AUC_test = round(auc_val, 4)
+  )
+}
+
+obtener_cm <- function(modelo, x_test, y_test, positive_class = "Alto") 
+  {
+  pred_class <- predict(modelo, newdata = x_test)
+  caret::confusionMatrix(pred_class, y_test, positive = positive_class)
+}
+```
+
+## Anexo E. Entrenamiento y evaluación final de los modelos de clasificación {#anx:clas-ent}
+
+```{r clasificacion_entrenamiento_librerias, eval=FALSE}
+set.seed(123)
+
+usar_parallel <- requireNamespace("doParallel", quietly = TRUE)
+if (usar_parallel) {
+  doParallel::registerDoParallel(cores = max(1, parallel::detectCores() - 1))
+}
+
+usar_boosting <- requireNamespace("gbm", quietly = TRUE)
+
+# inicialización de objetos
+modelos <- list()
+resultados_cv <- data.frame()
+```
+
+
+### E.2 Baseline y control de entrenamiento
+
+```{r clasificacion_entrenamiento_control, eval=FALSE}
+ctrl <- caret::trainControl(
+  method = "cv",
+  number = 5,
+  verboseIter = TRUE,
+  savePredictions = "final",
+  classProbs = TRUE,
+  summaryFunction = defaultSummary,
+  allowParallel = TRUE
+)
+
+ctrl_svm <- caret::trainControl(
+  method = "cv",
+  number = 5,
+  verboseIter = TRUE,
+  savePredictions = "final",
+  classProbs = TRUE,
+  summaryFunction = defaultSummary,
+  allowParallel = TRUE
+)
+
+mtry_grid <- c(4, 6, 8, 10)
+k_grid <- c(5, 11, 21, 31)
+```
+
+
+### E.3 Árboles de decisión
+
+```{r clasificacion_entrenamiento_arbol, eval=FALSE}
+set.seed(123)
+modelos$arbol <- entrenar_modelo(
+  "Árbol",
+  quote(
+    caret::train(
+      x = x_train, y = y_train,
+      method = "rpart",
+      metric = "Kappa",
+      tuneLength = 15,
+      trControl = ctrl
+    )
+  )
+)
+
+if (!is.null(modelos$arbol)) {
+  resultados_cv <- dplyr::bind_rows(
+    resultados_cv,
+    extraer_mejor(modelos$arbol, "Árbol")
+  )
+}
+```
+### E.4 Random Forest
+
+```{r clasificacion_entrenamiento_rf, eval=FALSE}
+set.seed(123)
+modelos$rf <- entrenar_modelo(
+  "Random Forest",
+  quote(
+    caret::train(
+      x = x_train, y = y_train,
+      method = "rf",
+      metric = "Kappa",
+      tuneGrid = expand.grid(mtry = mtry_grid),
+      trControl = ctrl,
+      ntree = 300,
+      importance = TRUE
+    )
+  )
+)
+
+if (!is.null(modelos$rf)) {
+  resultados_cv <- dplyr::bind_rows(
+    resultados_cv,
+    extraer_mejor(modelos$rf, "Random Forest")
+  )
+}
+```
+
+### E.5 Bagging
+
+```{r clasificacion_entrenamiento_bagging, eval=FALSE}
+set.seed(123)
+modelos$bagging <- entrenar_modelo(
+  "Bagging",
+  quote(
+    caret::train(
+      x = x_train, y = y_train,
+      method = "treebag",
+      metric = "Kappa",
+      trControl = ctrl
+    )
+  )
+)
+
+if (!is.null(modelos$bagging)) {
+  resultados_cv <- dplyr::bind_rows(
+    resultados_cv,
+    extraer_mejor(modelos$bagging, "Bagging")
+  )
+}
+```
+
+
+### E.6 Boosting
+
+```{r clasificacion_entrenamiento_boosting, eval=FALSE}
+if (usar_boosting) {
+  set.seed(123)
+  modelos$boosting <- entrenar_modelo(
+    "Boosting",
+    quote(
+      caret::train(
+        x = x_train, y = y_train,
+        method = "gbm",
+        metric = "Kappa",
+        trControl = ctrl,
+        verbose = FALSE,
+        tuneGrid = expand.grid(
+          interaction.depth = c(1, 2, 3),
+          n.trees = c(100, 200, 300),
+          shrinkage = c(0.05, 0.1),
+          n.minobsinnode = 10
+        )
+      )
+    )
+  )
+
+  if (!is.null(modelos$boosting)) {
+    resultados_cv <- dplyr::bind_rows(
+      resultados_cv,
+      extraer_mejor(modelos$boosting, "Boosting")
+    )
+  }
+}
+```
+
+### E.7 SVM reducido
+
+```{r clasificacion_entrenamiento_svm, eval=FALSE}
+set.seed(123)
+modelos$svm <- entrenar_modelo(
+  "SVM radial",
+  quote(
+    caret::train(
+      x = x_train, y = y_train,
+      method = "svmRadial",
+      metric = "Kappa",
+      tuneLength = 3,
+      trControl = ctrl_svm,
+      preProcess = c("center", "scale")
+    )
+  )
+)
+
+if (!is.null(modelos$svm)) {
+  resultados_cv <- dplyr::bind_rows(
+    resultados_cv,
+    extraer_mejor(modelos$svm, "SVM radial")
+  )
+}
+```
+
+
+### E.8 kNN
+
+```{r clasificacion_entrenamiento_knn, eval=FALSE}
+set.seed(123)
+modelos$knn <- entrenar_modelo(
+  "kNN",
+  quote(
+    caret::train(
+      x = x_train, y = y_train,
+      method = "knn",
+      metric = "Kappa",
+      tuneGrid = expand.grid(k = k_grid),
+      trControl = ctrl,
+      preProcess = c("center", "scale")
+    )
+  )
+)
+
+if (!is.null(modelos$knn)) {
+  resultados_cv <- dplyr::bind_rows(
+    resultados_cv,
+    extraer_mejor(modelos$knn, "kNN")
+  )
+}
+```
+
+
+### E.9 Evaluación final y guardado
+
+```{r clasificacion_entrenamiento_guardado, eval=FALSE}
+modelos <- list(
+  arbol = readRDS("modelo_arbol_bin_final.rds"),
+  rf = readRDS("modelo_random_forest_bin_final.rds"),
+  bagging = readRDS("modelo_bagging_bin_final.rds"),
+  boosting = readRDS("modelo_boosting_bin_final.rds"),
+  svm = readRDS("modelo_svm_radial_bin_final.rds"),
+  knn = readRDS("modelo_knn_bin_final.rds")
+)
+
+resultados_cv <- dplyr::bind_rows(
+  extraer_mejor(modelos$arbol, "Árbol"),
+  extraer_mejor(modelos$rf, "Random Forest"),
+  extraer_mejor(modelos$bagging, "Bagging"),
+  extraer_mejor(modelos$boosting, "Boosting"),
+  extraer_mejor(modelos$svm, "SVM radial"),
+  extraer_mejor(modelos$knn, "kNN")
+) %>%
+  dplyr::arrange(desc(Kappa_CV), desc(Accuracy_CV))
+
+mejor_nombre_cv <- resultados_cv$Modelo[1]
+
+mapa_modelos <- list(
+  "Árbol" = modelos$arbol,
+  "Random Forest" = modelos$rf,
+  "Bagging" = modelos$bagging,
+  "Boosting" = modelos$boosting,
+  "SVM radial" = modelos$svm,
+  "kNN" = modelos$knn
+)
+
+resultados_test_lista <- lapply(names(mapa_modelos), function(nombre) {
+  obtener_metricas_test(
+    modelo = mapa_modelos[[nombre]],
+    nombre = nombre,
+    x_test = x_test,
+    y_test = y_test,
+    positive_class = "Alto"
+  )
+})
+
+resultados_test_todos <- dplyr::bind_rows(resultados_test_lista) %>%
+  dplyr::arrange(desc(AUC_test), desc(Kappa_test), desc(Accuracy_test))
+
+roc_list <- list()
+
+for (nombre in names(mapa_modelos)) {
+  modelo_i <- mapa_modelos[[nombre]]
+
+  prob_pos <- tryCatch({
+    probs <- predict(modelo_i, newdata = x_test, type = "prob")
+    if ("Alto" %in% colnames(probs)) probs[["Alto"]] else NULL
+  }, error = function(e) NULL)
+
+  if (!is.null(prob_pos)) {
+    roc_obj <- tryCatch(
+      pROC::roc(
+        response = y_test,
+        predictor = prob_pos,
+        levels = c("Bajo", "Alto"),
+        direction = "<",
+        quiet = TRUE
+      ),
+      error = function(e) NULL
+    )
+
+    if (!is.null(roc_obj)) {
+      roc_list[[nombre]] <- roc_obj
+    }
+  }
+}
+
+auc_tab <- data.frame(
+  Modelo = names(roc_list),
+  AUC = sapply(roc_list, function(x) round(as.numeric(pROC::auc(x)), 4))
+) %>%
+  dplyr::arrange(desc(AUC))
+
+modelo_mejor <- mapa_modelos[[mejor_nombre_cv]]
+
+cm_mejor <- obtener_cm(
+  modelo = modelo_mejor,
+  x_test = x_test,
+  y_test = y_test,
+  positive_class = "Alto"
+)
+
+imp_vars_mejor <- tryCatch({
+  if (mejor_nombre_cv %in% c("Random Forest", "Árbol", "Boosting")) {
+    caret::varImp(modelo_mejor)
+  } else {
+    NULL
+  }
+}, error = function(e) NULL)
+
+saveRDS(tabla_clases, "tabla_clases_clasificacion_binaria.rds")
+saveRDS(resultados_cv, "resultados_cv_clasificacion_binaria_todos_final.rds")
+saveRDS(resultados_test_todos, "resultados_test_todos_clasificacion_binaria_final.rds")
+saveRDS(cm_mejor, "confusion_matrix_mejor_modelo_binaria_final.rds")
+saveRDS(auc_tab, "auc_tab_clasificacion_binaria_final.rds")
+saveRDS(roc_list, "roc_list_clasificacion_binaria_final.rds")
+saveRDS(imp_vars_mejor, "imp_vars_mejor_clasificacion_binaria_final.rds")
+saveRDS(mejor_nombre_cv, "mejor_nombre_cv_clasificacion_binaria_final.rds")
+```
+
+## Anexo F. Funciones auxiliares para el análisis no supervisado {#anx:ns-func}
+
+En este anexo se recogen las funciones auxiliares utilizadas en el análisis no supervisado, así como el bloque de ejecución empleado para generar los objetos y figuras que posteriormente se presentan en el cuerpo principal del trabajo.
+
+### F.1. Funciones auxiliares
+
+Las funciones incluidas en este apartado permiten preparar la base de datos para el análisis no supervisado, ejecutar el análisis de componentes principales (PCA), generar la figura conjunta del PCA, ajustar el modelo de fuzzy clustering y construir la visualización asociada a dicho análisis.
+
+```{r anexo_ns_helpers, ref.label='ns_helpers_run', echo=TRUE, eval=FALSE}
+```
+
+### F.2. Bloque de ejecución del análisis no supervisado
+
+Una vez definidas las funciones auxiliares, se ejecutó el flujo de trabajo correspondiente al análisis no supervisado. Este bloque parte de la base imputada final, prepara los datos, ajusta el PCA, genera su figura principal y, posteriormente, ejecuta el fuzzy clustering y guarda la visualización resultante.
+
+```{r anexo_ns_pipeline, ref.label='ns_pipeline_run', echo=TRUE, eval=FALSE}
+```
+
+
+## Anexo G. Desarrollo técnico del PCA {#anx:ns-pca}
+
+En este anexo se presenta el detalle técnico del análisis de componentes principales incorporado en el cuerpo principal del trabajo. El objetivo del PCA fue resumir la estructura interna de la base de datos a partir de variables numéricas del vehículo y del equipamiento, identificando los principales gradientes de variabilidad presentes en los datos.
+
+### G.1. Variables activas del PCA
+
+**Tabla 11. Variables activas utilizadas en el PCA.**
+```{r anexo_g_vars_pca, warning=FALSE, results='asis'}
+tabla_pdf(
+  data.frame(Variables = res_pca$vars_pca),
+  row.names = FALSE
+)
+```
+
+
+### G.2. Adecuación de la base para aplicar PCA
+
+Antes de interpretar las componentes principales, se comprobó la adecuación de la matriz de datos mediante el índice KMO y el test de esfericidad de Bartlett.
+
+**Tabla 12. Indice KMO global y por variable.**
+```{r anexo_g_kmo_bartlett, warning=FALSE, results='asis'}
+tabla_pdf(
+  res_pca$tabla_kmo_pca %>%
+    dplyr::mutate(KMO = round(KMO, 3)),
+  digits = 3,
+  row.names = FALSE
+)
+
+cat("Test de Bartlett\n")
+cat("Chi-cuadrado =", round(res_pca$bart_pca$chisq, 2), "\n")
+cat("gl =", res_pca$bart_pca$df, "\n")
+cat("p-valor =", format.pval(res_pca$bart_pca$p.value, digits = 3), "\n")
+```
+
+### G.3. Matriz de correlaciones
+
+La matriz de correlaciones permite comprobar qué variables presentan relaciones lineales entre sí y anticipar qué grupos de variables pueden estar contribuyendo conjuntamente a las dimensiones principales.
+
+```{r, warning=FALSE}
+cor_mat <- res_pca$cor_mat_pca # Reordenar variables según similitud para que el mapa quede más limpio 
+
+ord <- hclust(as.dist(1 - cor_mat))$order
+cor_mat_ord <- cor_mat[ord, ord] # Pasar a formato largo 
+
+cor_df <- as.data.frame(as.table(cor_mat_ord))
+colnames(cor_df) <- c("Var1", "Var2", "Correlacion") 
+# Etiqueta redondeada 
+cor_df$Etiqueta <- sprintf("%.2f", cor_df$Correlacion) 
+# Color del texto según intensidad del fondo 
+cor_df$color_texto <- ifelse(abs(cor_df$Correlacion) > 0.55, "white", "black")
+# Etiquetas más bonitas para las variables 
+
+nombres_bonitos <- c( Year = "Año", Mileage_mean = "Kilometraje", Fiscal.Power = "Potencia fiscal", Condition_num = "Estado", equip_security = "Seguridad", equip_driving_assist = "Asist. conducción", equip_comfort = "Confort", equip_tech = "Tecnología" ) 
+
+cor_df$Var1 <- dplyr::recode(as.character(cor_df$Var1), !!!nombres_bonitos) 
+cor_df$Var2 <- dplyr::recode(as.character(cor_df$Var2), !!!nombres_bonitos)
+
+# Mantener el orden del clustering
+niveles_x <- dplyr::recode(colnames(cor_mat_ord), !!!nombres_bonitos) 
+niveles_y <- rev(niveles_x) 
+
+cor_df$Var1 <- factor(cor_df$Var1, levels = niveles_x) 
+cor_df$Var2 <- factor(cor_df$Var2, levels = niveles_y) 
+
+ggplot(cor_df, aes(x = Var1, y = Var2, fill = Correlacion)) + 
+  geom_tile(color = "white", linewidth = 0.6) + 
+  geom_text(aes(label = Etiqueta, color = color_texto), size = 3.6, fontface = "bold") + 
+  scale_color_identity() + 
+  scale_fill_gradient2(
+    low = "#3B4CC0", 
+    mid = "white", 
+    high = "#B40426", 
+    midpoint = 0, 
+    limits = c(-1, 1), 
+    breaks = seq(-1, 1, by = 0.25),
+    name = "Correlación" 
+  ) + 
+  labs( title = "Matriz de correlaciones de las variables activas del PCA",
+        x = NULL, 
+        y = NULL 
+  )+ 
+  coord_equal() +
+  theme_minimal(base_size = 13) +
+  theme( plot.title = element_text(face = "bold", hjust = 0.5, size = 15), 
+         axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+         axis.text.y = element_text(size = 11),
+         panel.grid = element_blank(),
+         legend.title = element_text(face = "bold") )
+```
+
+### G.4.1. Autovalores y varianza explicada
+
+**Tabla 13. Autovalores y varianza explicada del PCA.**
+```{r anexo_g_scree_tabla, warning=FALSE, results='asis'}
+eig_df <- res_pca$eig_pca %>%
+  dplyr::mutate(
+    Componente = seq_len(n()),
+    Dimensión = factor(Dimensión, levels = Dimensión)
+  )
+
+tabla_pdf(
+  eig_df %>%
+    dplyr::select(Dimensión, Autovalor, `Varianza (%)`, `Varianza acumulada (%)`) %>%
+    dplyr::mutate(dplyr::across(where(is.numeric), ~ round(.x, 2))),
+  digits = 2,
+  align = "lccc",
+  row.names = FALSE
+)
+```
+
+
+
+### G.4.2. Scree plot
+
+```{r anexo-g-scree-plot, warning=FALSE, fig.width=8, fig.height=5.5, fig.cap="Gráfico de sedimentación del PCA.", fig.scap="Scree plot del PCA", fig.pos='!htbp'}
+ggplot(eig_df, aes(x = Componente, y = Autovalor)) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 2.8) +
+  geom_hline(yintercept = 1, linetype = 2, linewidth = 0.8, color = "red") +
+  scale_x_continuous(breaks = eig_df$Componente) +
+  labs(
+    title = "Gráfico de sedimentación del PCA",
+    subtitle = "La línea discontinua roja indica el umbral de Kaiser (autovalor = 1)",
+    x = "Componente principal",
+    y = "Autovalor"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    panel.grid.minor = element_blank()
+  )
+```
+
+### G.5. Coordenadas de las variables 
+
+**Tabla 14. Coordenadas de las variables en las tres primeras dimensiones.**
+```{r anexo_g_coord_vars, warning=FALSE, results='asis'}
+tabla_pdf(
+  res_pca$coord_vars_pca %>%
+    dplyr::select(Variable, Dim.1, Dim.2, Dim.3) %>%
+    dplyr::mutate(dplyr::across(where(is.numeric), ~ round(.x, 3))),
+  digits = 3,
+  row.names = FALSE
+)
+```
+### G.6. Contribución de las variables
+
+**Tabla 15. Contribución porcentual de las variables en las tres primeras dimensiones.**
+```{r anexo_g_contrib_vars, warning=FALSE, results='asis'}
+tabla_pdf(
+  res_pca$contrib_vars_pca %>%
+    dplyr::select(Variable, Dim.1, Dim.2, Dim.3) %>%
+    dplyr::mutate(dplyr::across(where(is.numeric), ~ round(.x, 2))),
+  digits = 2,
+  row.names = FALSE
+)
+```
+
+
+### G.7. Calidad de representación de las variables
+
+**Tabla 16. Calidad de representación (cos²) de las variables.**
+```{r anexo_g_cos2_vars, warning=FALSE, results='asis'}
+tabla_pdf(
+  res_pca$cos2_vars_pca %>%
+    dplyr::select(Variable, Dim.1, Dim.2, Dim.3) %>%
+    dplyr::mutate(dplyr::across(where(is.numeric), ~ round(.x, 3))),
+  digits = 3,
+  row.names = FALSE
+)
+```
+
+## Anexo H. Desarrollo técnico del fuzzy clustering {#anx:ns-fuzzy}
+
+En este anexo se detalla el procedimiento seguido para el fuzzy clustering aplicado sobre la misma formulación binaria utilizada en clasificación.
+
+### H.1. Variables activas del fuzzy clustering
+
+En el caso del fuzzy clustering se excluyó deliberadamente la variable `equip_tech`, con el fin de evitar circularidad respecto a la variable tecnológica utilizada posteriormente en la interpretación. De este modo, la pertenencia difusa se calcula a partir de variables estructurales y de otras dimensiones del equipamiento, dejando el nivel tecnológico como criterio externo de análisis.
+
+**Tabla 17. Variables activas utilizadas en el fuzzy clustering.**
+```{r anexo_h_vars_fuzzy, warning=FALSE, results='asis'}
+tabla_pdf(
+  data.frame(Variables = res_fuzzy$vars_fuzzy),
+  row.names = FALSE
+)
+```
+
+### H.2. Indicadores de ambigüedad
+
+**Tabla 18. Indicadores de ambigüedad del fuzzy clustering.**
+```{r anexo_h_indicadores_fuzzy, warning=FALSE, results='asis'}
+tabla_fuzzy_anexo_out <- res_fuzzy$tabla_fuzzy_comparacion %>%
+  dplyr::rename(
+    Comparacion = Comparacion,
+    n = n,
+    Pertenencia_max_media = `Pertenencia máxima media`,
+    Pct_pertenencia_max_inferior_060 = `% con pertenencia máx < 0.60`,
+    Pct_pertenencia_max_inferior_070 = `% con pertenencia máx < 0.70`
+  )
+
+tabla_pdf(
+  tabla_fuzzy_anexo_out,
+  digits = 2,
+  row.names = FALSE
+)
+```
+
+### H.3. Centros de los perfiles detectados
+
+**Tabla 19. Centros de los perfiles detectados en el fuzzy clustering.**
+```{r anexo_h_centros_fuzzy, warning=FALSE, results='asis'}
+tabla_pdf(
+  res_fuzzy$tabla_centros_fuzzy_bin,
+  digits = 2,
+  row.names = FALSE
+)
+```
+
+### H.4. Resumen de pertenencias por nivel tecnológico
+
+**Tabla 20. Resumen de pertenencias por nivel tecnológico.**
+```{r anexo_h_memb_fuzzy, warning=FALSE, results='asis'}
+tabla_pdf(
+  res_fuzzy$tabla_memb_bin,
+  digits = 3,
+  row.names = FALSE
+)
+```
+
+## Anexo I. Funciones auxiliares para la regresión {#anx:reg-func}
+
+En este anexo se recogen las funciones auxiliares utilizadas para preparar la base de regresión, construir la partición train/test, generar la matriz dummy de predictores y definir las métricas de evaluación empleadas posteriormente en el cuerpo principal del trabajo.
+
+### I.1. Preparación de datos, partición y funciones auxiliares
+
+```{r anexo_reg_helpers, ref.label='reg_helpers_run', echo=TRUE, eval=FALSE}
+```
+
+### I.2. Preparación del entorno de entrenamiento y validación cruzada
+
+```{r anexo_reg_entorno_cv, echo=TRUE, eval=FALSE}
+load(file.path(RUTA_TRABAJO, "datos_imputados.RData"))
+stopifnot(exists("data_final"))
+
+data_reg_clean <- preparar_objetivo_regresion(data_final)
+data_reg_prep  <- preparar_predictores_regresion(data_reg_clean)
+obj_reg <- crear_matrices_regresion(data_reg_prep, seed = 123)
+
+list2env(obj_reg, envir = .GlobalEnv)
+
+ctrl_reg <- caret::trainControl(
+  method = "cv",
+  number = 5,
+  verboseIter = FALSE,
+  savePredictions = "final",
+  summaryFunction = defaultSummary,
+  allowParallel = TRUE
+)
+
+ctrl_xgb <- ctrl_reg
+```
+
+## Anexo J. Código de entrenamiento de los modelos de regresión {#anx:reg-train}
+
+En este anexo se recoge el código completo utilizado para entrenar y ajustar los distintos modelos de regresión evaluados en el trabajo. En particular, se incluyen el modelo lineal múltiple como referencia, el árbol de regresión, Random Forest, XGBoost, SVM radial y kNN, así como el bloque final de comparación en validación cruzada, evaluación en test y guardado de los objetos generados.
+
+### J.1. Carga de datos y preparación inicial
+
+En este anexo se recoge el código completo utilizado para entrenar y ajustar los distintos modelos de regresión evaluados en el trabajo. Como paso previo, se reutiliza el entorno de entrenamiento definido en el **Anexo \@ref(anx:reg-func)**.
+
+### J.1. Regresión lineal múltiple
+
+En este apartado se recoge el código correspondiente al ajuste de la regresión lineal múltiple, utilizada como modelo base de referencia por su interpretabilidad y simplicidad.
+
+```{r reg_lm_run, eval=FALSE, warning=FALSE, message=FALSE}
+set.seed(123)
+
+modelo_lm <- caret::train(
+  x = x_train,
+  y = y_train,
+  method = "lm",
+  metric = "RMSE",
+  trControl = ctrl_reg
+)
+
+print(modelo_lm)
+saveRDS(modelo_lm, "modelo_regresion_lineal_reg_final.rds")
+```
+
+### J.2. Árbol de regresión (CART)
+
+En este apartado se incluye el entrenamiento del árbol de regresión tipo CART, así como el ajuste de sus parámetros de complejidad dentro del esquema de validación cruzada definido previamente.
+
+```{r reg_arbol_run, eval=FALSE, warning=FALSE, message=FALSE}
+set.seed(123)
+
+modelo_arb <- caret::train(
+  x = x_train,
+  y = y_train,
+  method = "rpart",
+  metric = "RMSE",
+  tuneLength = 15,
+  trControl = ctrl_reg
+)
+
+print(modelo_arb)
+saveRDS(modelo_arb, "modelo_arbol_reg_final.rds")
+```
+
+### J.3. Random Forest
+
+En este apartado se recoge el entrenamiento del modelo Random Forest, incluyendo la exploración de hiperparámetros y la selección de la configuración óptima en función del rendimiento obtenido en validación cruzada.
+
+```{r reg_rf_run, eval=FALSE, warning=FALSE, message=FALSE}
+set.seed(123)
+
+mtry_grid_reg <- expand.grid(mtry = c(5, 10, 15))
+
+modelo_rf <- caret::train(
+  x = x_train,
+  y = y_train,
+  method = "rf",
+  metric = "RMSE",
+  tuneGrid = mtry_grid_reg,
+  trControl = ctrl_reg,
+  ntree = 300,
+  importance = TRUE
+)
+
+print(modelo_rf)
+saveRDS(modelo_rf, "modelo_random_forest_reg_final.rds")
+```
+
+### J.4. XGBoost
+
+En este apartado se incluye el entrenamiento del modelo XGBoost como método adicional de boosting para regresión. Este modelo se incorpora con el fin de comparar su capacidad predictiva frente a otros enfoques no lineales y de ensamblado ya considerados en el trabajo.
+
+```{r reg_xgboost_run, eval=FALSE, warning=FALSE, message=FALSE}
+set.seed(123)
+
+modelo_xgb <- suppressWarnings(
+  caret::train(
+    x = x_train_xgb,
+    y = y_train,
+    method = "xgbTree",
+    metric = "RMSE",
+    trControl = ctrl_xgb,
+    tuneGrid = expand.grid(
+      nrounds = c(100, 200),
+      max_depth = c(4, 6),
+      eta = c(0.05, 0.10),
+      gamma = 0,
+      colsample_bytree = 0.8,
+      min_child_weight = c(1, 5),
+      subsample = 0.8
+    ),
+    verbose = FALSE
+  )
+)
+
+print(modelo_xgb)
+saveRDS(modelo_xgb, "modelo_xgboost_reg_final.rds")
+```
+
+
+### J.5. SVM radial
+
+En este apartado se presenta el entrenamiento del modelo de máquinas de vectores soporte con kernel radial, incluyendo el ajuste de los hiperparámetros relevantes dentro del procedimiento de validación cruzada.
+```{r reg_svm_run, eval=FALSE, warning=FALSE, message=FALSE}
+set.seed(123)
+
+modelo_svm <- caret::train(
+  x = x_train,
+  y = y_train,
+  method = "svmRadial",
+  metric = "RMSE",
+  tuneLength = 5,
+  trControl = ctrl_reg,
+  preProcess = c("center", "scale")
+)
+
+print(modelo_svm)
+saveRDS(modelo_svm, "modelo_svm_radial_reg_final.rds")
+```
+
+### J.6. kNN
+
+En este apartado se recoge el ajuste del modelo kNN para regresión, evaluando distintos valores del número de vecinos con el fin de identificar la configuración con mejor comportamiento predictivo.
+
+```{r reg_knn_run, eval=FALSE, warning=FALSE, message=FALSE}
+set.seed(123)
+
+k_grid_reg <- expand.grid(k = c(5, 11, 21, 31))
+
+modelo_knn <- caret::train(
+  x = x_train,
+  y = y_train,
+  method = "knn",
+  metric = "RMSE",
+  tuneGrid = k_grid_reg,
+  trControl = ctrl_reg,
+  preProcess = c("center", "scale")
+)
+
+print(modelo_knn)
+saveRDS(modelo_knn, "modelo_knn_reg_final.rds")
+```
+
+### J.7. Comparación final en validación cruzada
+
+En este apartado se construye la tabla resumen de resultados en validación cruzada para todos los modelos entrenados, permitiendo comparar de forma conjunta sus métricas de rendimiento sobre la variable transformada.
+```{r reg_cv_resumen_run, eval=FALSE, warning=FALSE, message=FALSE}
+modelo_lm  <- readRDS("modelo_regresion_lineal_reg_final.rds")
+modelo_arb <- readRDS("modelo_arbol_reg_final.rds")
+modelo_rf  <- readRDS("modelo_random_forest_reg_final.rds")
+modelo_svm <- readRDS("modelo_svm_radial_reg_final.rds")
+modelo_knn <- readRDS("modelo_knn_reg_final.rds")
+
+resultados_cv_reg <- dplyr::bind_rows(
+  extraer_mejor_reg(modelo_lm, "Regresión Lineal"),
+  extraer_mejor_reg(modelo_arb, "Árbol"),
+  extraer_mejor_reg(modelo_rf, "Random Forest"),
+  extraer_mejor_reg(modelo_svm, "SVM"),
+  extraer_mejor_reg(modelo_knn, "kNN")
+)
+
+if (file.exists("modelo_xgboost_reg_final.rds")) {
+  modelo_xgb <- readRDS("modelo_xgboost_reg_final.rds")
+  resultados_cv_reg <- dplyr::bind_rows(
+    resultados_cv_reg,
+    extraer_mejor_reg(modelo_xgb, "XGBoost")
+  )
+}
+
+resultados_cv_reg <- resultados_cv_reg %>%
+  dplyr::arrange(RMSE_CV, MAE_CV, dplyr::desc(Rsquared_CV))
+
+knitr::kable(
+  resultados_cv_reg,
+  caption = "Resumen comparativo de modelos en validación cruzada"
+)
+```
+
+### J.8. Evaluación final en test y guardado de resultados
+
+```{r reg_guardado_final_run, eval=FALSE, warning=FALSE, message=FALSE}
+modelo_lm  <- readRDS("modelo_regresion_lineal_reg_final.rds")
+modelo_arb <- readRDS("modelo_arbol_reg_final.rds")
+modelo_rf  <- readRDS("modelo_random_forest_reg_final.rds")
+modelo_svm <- readRDS("modelo_svm_radial_reg_final.rds")
+modelo_knn <- readRDS("modelo_knn_reg_final.rds")
+
+mapa_modelos_reg <- list(
+  "Regresión Lineal" = modelo_lm,
+  "Árbol" = modelo_arb,
+  "Random Forest" = modelo_rf,
+  "SVM" = modelo_svm,
+  "kNN" = modelo_knn
+)
+
+if (file.exists("modelo_xgboost_reg_final.rds")) {
+  modelo_xgb <- readRDS("modelo_xgboost_reg_final.rds")
+  mapa_modelos_reg[["XGBoost"]] <- modelo_xgb
+}
+
+resultados_cv_reg <- dplyr::bind_rows(
+  extraer_mejor_reg(modelo_lm, "Regresión Lineal"),
+  extraer_mejor_reg(modelo_arb, "Árbol"),
+  extraer_mejor_reg(modelo_rf, "Random Forest"),
+  extraer_mejor_reg(modelo_svm, "SVM"),
+  extraer_mejor_reg(modelo_knn, "kNN"),
+  if ("XGBoost" %in% names(mapa_modelos_reg)) extraer_mejor_reg(mapa_modelos_reg[["XGBoost"]], "XGBoost")
+) %>%
+  dplyr::arrange(RMSE_CV, MAE_CV, dplyr::desc(Rsquared_CV))
+
+mejor_nombre_cv_reg <- resultados_cv_reg$Modelo[1]
+modelo_mejor_reg <- mapa_modelos_reg[[mejor_nombre_cv_reg]]
+
+resultados_test_todos_reg <- dplyr::bind_rows(
+  lapply(names(mapa_modelos_reg), function(nombre) {
+    obtener_metricas_test_reg(
+      modelo = mapa_modelos_reg[[nombre]],
+      nombre = nombre,
+      x_test = x_test,
+      x_test_xgb = x_test_xgb,
+      y_test = y_test
+    )
+  })
+) %>%
+  dplyr::arrange(RMSE_test, MAE_test)
+
+if (inherits(modelo_mejor_reg$finalModel, "xgb.Booster")) {
+  pred_log_mejor <- as.numeric(predict(modelo_mejor_reg, newdata = x_test_xgb))
+} else {
+  pred_log_mejor <- as.numeric(predict(modelo_mejor_reg, newdata = x_test))
+}
+
+predicciones_log <- data.frame(
+  Real = y_test,
+  Prediccion = pred_log_mejor
+)
+
+imp_vars_mejor_reg <- tryCatch({
+  if (mejor_nombre_cv_reg %in% c("Random Forest", "Árbol", "XGBoost")) {
+    caret::varImp(modelo_mejor_reg)
+  } else {
+    NULL
+  }
+}, error = function(e) NULL)
+
+saveRDS(resultados_cv_reg, "resultados_cv_regresion_final.rds")
+saveRDS(resultados_test_todos_reg, "resultados_test_todos_regresion_final.rds")
+saveRDS(mejor_nombre_cv_reg, "mejor_nombre_cv_regresion_final.rds")
+saveRDS(predicciones_log, "predicciones_mejor_modelo_regresion_final.rds")
+saveRDS(imp_vars_mejor_reg, "imp_vars_mejor_regresion_final.rds")
+```
+
+En este apartado se realiza la evaluación final de todos los modelos sobre el conjunto test, se identifican las predicciones del mejor modelo y se guardan los objetos necesarios para su posterior representación e interpretación en el cuerpo principal del trabajo y en los anexos técnicos.
+
+## Anexo K. Explicabilidad adicional del modelo de regresión {#anx:reg-extra}
+
+En este anexo se recogen análisis complementarios orientados a interpretar el comportamiento del modelo final de regresión. En particular, se incluyen medidas de importancia global de variables, gráficos de dependencia parcial para los predictores más relevantes y una explicación local basada en valores SHAP para una observación concreta del conjunto de test. De forma complementaria, se incorpora también la comparación mediante curvas REC para reforzar la discusión del rendimiento predictivo.
+
+### K.1. Importancia global de variables
+
+En este apartado se presenta la importancia relativa de las variables predictoras en el modelo final de regresión, con el fin de identificar qué atributos contribuyen en mayor medida a la predicción del precio del vehículo.
+
+```{r reg-importancia-anexo-visible, warning=FALSE, message=FALSE, fig.width=8, fig.height=6, fig.cap="Importancia global de variables del modelo final de regresión.", fig.scap="Importancia global en regresión", fig.pos='!htbp'}
+if (!is.null(imp_vars_mejor_reg)) {
+  plot(
+    imp_vars_mejor_reg,
+    top = 15,
+    main = paste("Importancia de variables -", mejor_nombre_cv_reg)
+  )
+}
+```
+
+La importancia global de variables permite identificar qué predictores contribuyen en mayor medida al ajuste del modelo final. En la versión original del análisis, el **año de matriculación** y la **potencia fiscal** se situaban entre las variables con mayor peso explicativo, lo que reforzaba la interpretación económica del modelo de regresión.
+
+### K.2. Dependencia parcial del año del vehículo y de la potencia fiscal
+
+Con el fin de profundizar en la interpretación global del modelo final de regresión, se analizaron los gráficos de dependencia parcial correspondientes a dos de las variables con mayor relevancia explicativa: el **año del vehículo** (`Year`) y la **potencia fiscal** (`Fiscal.Power`). Estos gráficos permiten estudiar cómo varía la predicción media del precio cuando cambia una variable concreta, manteniendo el resto de predictores según la estructura observada en los datos.
+
+```{r reg-pdp-anexo, eval=FALSE, warning=FALSE, message=FALSE}
+
+modelo_rf <- readRDS("modelo_random_forest_reg_final.rds")
+
+custom_predict <- function(model, newdata) {
+  exp(predict(model, newdata))
+}
+
+explainer_rf <- DALEX::explain(
+  model = modelo_rf,
+  data = x_train,
+  y = exp(y_train),
+  predict_function = custom_predict,
+  label = "Random Forest",
+  colorize = FALSE,
+  verbose = FALSE
+)
+
+pdp_year <- model_profile(explainer_rf, variables = "Year", type = "partial")
+pdp_fiscal <- model_profile(explainer_rf, variables = "Fiscal.Power", type = "partial")
+
+p1 <- plot(pdp_year) +
+  theme_minimal(base_size = 13) +
+  labs(
+    title = "Efecto del Año de Matriculación",
+    x = "Año",
+    y = "Precio promedio (Dirhams)"
+  ) +
+  theme(plot.title = element_text(face = "bold", size = 12))
+
+p2 <- plot(pdp_fiscal) +
+  theme_minimal(base_size = 13) +
+  scale_x_continuous(limits = c(4, 16), breaks = seq(4, 16, by = 2)) +
+  labs(
+    title = "Efecto de la Potencia Fiscal",
+    x = "Caballos Fiscales (CV)",
+    y = ""
+  ) +
+  theme(plot.title = element_text(face = "bold", size = 12))
+
+p_combinado <- p1 + p2 +
+  patchwork::plot_annotation(
+    title = "Efectos Globales: Gráficos de Dependencia Parcial (PDP)",
+    theme = theme(plot.title = element_text(face = "bold", size = 15))
+  )
+
+print(p_combinado)
+```
+
+En el caso del **año del vehículo**, el gráfico de dependencia parcial permite analizar cómo influye la antigüedad o modernidad del automóvil sobre la predicción del precio. En términos generales, cabe esperar una relación creciente, de modo que los vehículos más recientes presenten una valoración media superior, coherente con la depreciación acumulada de los modelos más antiguos.
+
+Por su parte, el gráfico asociado a la **potencia fiscal** permite estudiar si el modelo detecta incrementos sistemáticos del precio a medida que aumenta este atributo. Una relación no lineal en esta variable puede reflejar diferencias de posicionamiento entre segmentos de mercado, así como el efecto conjunto de prestaciones, gama comercial y costes asociados al vehículo.
+
+### K.3. Explicabilidad local mediante valores SHAP
+
+En este apartado se incluye una explicación local de una observación concreta del conjunto de test mediante valores SHAP. Este análisis permite descomponer la predicción individual del modelo en las contribuciones específicas de cada variable.
+
+
+```{r reg_shap_anexo, ref.label='reg-shap-principal', echo=TRUE, eval=FALSE}
+```
+
+La explicación local mediante valores SHAP permite descomponer la predicción de una observación concreta en contribuciones aditivas de cada variable. Este enfoque resulta especialmente útil para justificar tasaciones individuales, ya que muestra de forma transparente qué características del vehículo empujan la predicción al alza o a la baja respecto al valor medio de referencia.
+
+### K.4. Curvas REC comparativas
+
+En este apartado se recoge el código empleado para construir las curvas REC de los distintos modelos de regresión evaluados.
+
+```{r anexo_reg_rec, ref.label='reg-plot-rec', echo=TRUE, eval=FALSE}
+```
+
+### K.5. Comentario final de interpretabilidad
+
+En conjunto, los resultados de interpretabilidad permiten complementar la comparación puramente predictiva entre modelos. La **importancia global de variables** identifica qué atributos son más determinantes en la tasación, los **gráficos de dependencia parcial** muestran la dirección y forma del efecto promedio de variables clave, y la **explicación local mediante SHAP** permite justificar predicciones individuales de manera desagregada. Esta combinación de herramientas refuerza la elección del modelo final no solo por su rendimiento, sino también por su capacidad de ser interpretado desde una perspectiva aplicada.
+
+
+# Bibliografía
+
+<div id="refs"></div>
