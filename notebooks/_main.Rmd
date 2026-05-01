@@ -1,4 +1,4 @@
----
+﻿---
 output:
   bookdown::pdf_document2: default
 bibliography: referencias_paquetes.bib
@@ -3074,4 +3074,5 @@ En conjunto, los resultados de interpretabilidad permiten complementar la compar
 <div id="refs"></div>
 
 <!--chapter:end:trabajo.Rmd-->
+
 
