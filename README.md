@@ -49,6 +49,7 @@ Regression:
 - curated R Markdown source files;
 - a reference classification script extracted from the coursework folder;
 - a compact regression workflow script aligned with the final report;
+- a public R script that regenerates safe result figures from the final stored coursework outputs;
 - supporting exploratory figures used to interpret classification and regression structure;
 - documentation explaining methodology and results;
 - a selection of safe figures.
@@ -61,6 +62,8 @@ Regression:
   Reference script showing the classification model families explored in the source folder.
 - `src/regression_modeling_workflow.R`
   Compact public script describing the regression workflow and model comparison.
+- `src/generate_public_result_figures.R`
+  Helper used to regenerate public-safe ROC, cross-validation and regression-summary figures from the original private result objects.
 - `docs/methodology_overview.md`
   High-level explanation of the pipeline.
 - `docs/results_summary.md`
@@ -70,29 +73,24 @@ Regression:
 
 ## Visual preview
 
-The public version includes representative figures from the coursework, including binary-classification structure and regression-oriented PCA views.
+This repository keeps a short set of representative figures rather than a full dump of coursework charts.
+The selected visuals show the model-comparison logic in classification, the discrimination behaviour of the final classifier, the structural interpretation used in regression and the agreement between observed and predicted prices.
 
-![Binary classification figure](figures/fuzzy_binario.png)
+![Classification cross-validation summary](figures/classification_cv_summary.png)
 
-![Regression PCA figure](figures/pca_precio.png)
+![Classification ROC comparison](figures/classification_roc_comparison.png)
 
-![Joint PCA figure](figures/pca_conjunto.png)
+![Regression-oriented PCA figure](figures/pca_precio.png)
 
-## Additional exploratory support figures
-
-The original coursework also used exploratory visual analysis to interpret feature structure before and after the supervised blocks. Representative safe figures from that part of the work are kept here as well.
-
-![Exploratory scree plot](figures/01_screeplot.png)
-
-![MCA variable map](figures/02_mca_variables.png)
-
-![Top MCA contributions](figures/03_mca_variables_top30_contrib.png)
+![Observed vs predicted price](figures/regression_actual_vs_predicted.png)
 
 ## Main findings retained in the public version
 
-- `Random Forest` was the strongest classification model in the reviewed report, with the best overall behaviour in validation and test.
+- in our project, `Random Forest` was the strongest classification model, with the best overall behaviour in validation and test;
 - the unsupervised block supports the idea that the binary technological separation is useful but not perfectly sharp;
 - nonlinear and ensemble models also led the regression block, where vehicle price depended on several interacting structural and commercial variables.
+
+Additional exploratory figures such as `fuzzy_binario.png`, `pca_conjunto.png` and `regression_cv_summary.png` are still available in `figures/` for readers who want a broader view of the coursework outputs.
 
 ## Data availability
 

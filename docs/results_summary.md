@@ -12,6 +12,8 @@ Values explicitly stated in the coursework text include:
 
 The report also notes that bagging and boosting were competitive, while tree, kNN and SVM radial performed below the top ensemble methods.
 
+The public figures `classification_cv_summary.png` and `classification_roc_comparison.png` condense that selection process into the two most representative visual views.
+
 ## Unsupervised interpretation
 
 The PCA and fuzzy-clustering block supports the classification narrative:
@@ -35,6 +37,8 @@ In the final regression analysis, one representative performance snapshot on the
 - MAE: `23,805` dirhams
 - MAPE: `23.2%`
 - RMSE: `55,010` dirhams
+
+The public figure `regression_actual_vs_predicted.png` keeps a compact view of that final regression behaviour without exposing the original private result objects.
 
 ## Why these numbers are documented but not fully reproduced here
 
