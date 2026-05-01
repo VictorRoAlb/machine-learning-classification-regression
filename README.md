@@ -71,6 +71,14 @@ Regression:
 - `figures/`
   Public-safe visual outputs used in the report and the portfolio website.
 
+## Where to start
+
+1. `notebooks/trabajo.Rmd`
+2. `figures/classification_cv_summary.png`
+3. `figures/classification_roc_comparison.png`
+4. `figures/regression_actual_vs_predicted.png`
+5. `src/reference_classification_model_gallery.R`
+
 ## Visual preview
 
 This repository keeps a short set of representative figures rather than a full dump of coursework charts.
