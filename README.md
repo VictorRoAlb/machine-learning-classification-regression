@@ -8,6 +8,7 @@ Selected coursework material on supervised learning, with an emphasis on data pr
 - cross-validation
 - model selection
 - confusion matrices, ROC-style evaluation and supporting visualizations
+- comparison between several classification families detected in the source material, including tree-based models, random forest, k-nearest neighbours, SVM-style classifiers and logistic-regression workflows
 
 ## Included here
 - curated RMarkdown source files
@@ -23,6 +24,10 @@ The public version includes representative figures from the coursework, includin
 ![Regression PCA figure](figures/pca_precio.png)
 
 ![Joint PCA figure](figures/pca_conjunto.png)
+
+## Source-note on models
+
+During review of the original coursework folder, the underlying material showed evidence of several supervised-classification workflows rather than a single model family. The public export therefore presents this repository as a model-comparison coursework project, even when only a limited figure subset is published.
 
 ## Data availability
 Raw tables, spreadsheets and serialized model artifacts are not published in this repository.
