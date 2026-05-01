@@ -49,6 +49,7 @@ Regression:
 - curated R Markdown source files;
 - a reference classification script extracted from the coursework folder;
 - a compact regression workflow script aligned with the final report;
+- supporting exploratory figures used to interpret classification and regression structure;
 - documentation explaining methodology and results;
 - a selection of safe figures.
 
@@ -76,6 +77,16 @@ The public version includes representative figures from the coursework, includin
 ![Regression PCA figure](figures/pca_precio.png)
 
 ![Joint PCA figure](figures/pca_conjunto.png)
+
+## Additional exploratory support figures
+
+The original coursework also used exploratory visual analysis to interpret feature structure before and after the supervised blocks. Representative safe figures from that part of the work are kept here as well.
+
+![Exploratory scree plot](figures/01_screeplot.png)
+
+![MCA variable map](figures/02_mca_variables.png)
+
+![Top MCA contributions](figures/03_mca_variables_top30_contrib.png)
 
 ## Main findings retained in the public version
 
