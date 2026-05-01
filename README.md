@@ -4,7 +4,7 @@ Selected coursework material on supervised learning, unsupervised support analys
 
 ## Project scope
 
-The audited source material covers three connected blocks:
+The project is organized around three connected blocks:
 
 1. binary classification;
 2. unsupervised analysis for structural interpretation;
@@ -24,7 +24,7 @@ The public repository reflects that structure instead of showing only a small vi
 - PCA and fuzzy clustering as interpretability support;
 - variable importance, REC curves and SHAP-style local explanations.
 
-## Model families identified in the source material
+## Model families covered in the project
 
 Classification:
 

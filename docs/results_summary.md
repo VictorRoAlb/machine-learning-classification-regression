@@ -2,7 +2,7 @@
 
 ## Classification
 
-The reviewed report indicates that `Random Forest` was the strongest classification model in both cross-validation and test.
+In our project, `Random Forest` was the strongest classification model in both cross-validation and test evaluation.
 
 Values explicitly stated in the coursework text include:
 
@@ -30,7 +30,7 @@ The regression block shows the same broad pattern:
 - Random Forest and XGBoost stand out in cross-validation;
 - the final model analysis highlights the roles of year, fiscal power and related structural variables.
 
-The source report also states an example final-model performance on the original price scale:
+In the final regression analysis, one representative performance snapshot on the original price scale was:
 
 - MAE: `23,805` dirhams
 - MAPE: `23.2%`
