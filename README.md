@@ -4,13 +4,13 @@ Selected coursework material on supervised learning, unsupervised support analys
 
 ## Project scope
 
-The project is organized around three connected blocks:
+I organize this project around three connected blocks:
 
 1. binary classification;
 2. unsupervised analysis for structural interpretation;
 3. regression for price prediction.
 
-The public repository reflects that structure instead of showing only a small visual subset.
+I wanted the public repository to reflect that structure instead of showing only a small visual subset.
 
 ## Topics covered
 
@@ -81,8 +81,8 @@ Regression:
 
 ## Visual preview
 
-This repository keeps a short set of representative figures rather than a full dump of coursework charts.
-The selected visuals show the model-comparison logic in classification, the discrimination behaviour of the final classifier, the structural interpretation used in regression and the agreement between observed and predicted prices.
+I keep a short set of representative figures here rather than a full dump of coursework charts.
+These visuals show the model-comparison logic in classification, the discrimination behaviour of the final classifier, the structural interpretation used in regression and the agreement between observed and predicted prices.
 
 ![Classification cross-validation summary](figures/classification_cv_summary.png)
 
@@ -92,7 +92,7 @@ The selected visuals show the model-comparison logic in classification, the disc
 
 ![Observed vs predicted price](figures/regression_actual_vs_predicted.png)
 
-## Main findings retained in the public version
+## Main findings
 
 - in our project, `Random Forest` was the strongest classification model, with the best overall behaviour in validation and test;
 - the unsupervised block supports the idea that the binary technological separation is useful but not perfectly sharp;
@@ -106,4 +106,4 @@ Raw tables, spreadsheets, serialized model artifacts and imputed datasets are no
 
 ## Reproducibility note
 
-Exact reproduction would require the original course datasets or a public substitute with the same schema. The public repository therefore prioritizes methodology, code structure, model comparison and safe visual outputs.
+Exact reproduction would require the original course datasets or a public substitute with the same schema. For that reason, I focus this repository on methodology, code structure, model comparison and safe visual outputs.
